@@ -19,3 +19,8 @@ class BookmeterSpider(scrapy.Spider):
             }
         
 
+        next_page = response.xpath('//ul[@class="bm-pagination"]//a[@rel="next"]/@href').get()
+        if next_page is not None:
+            yield response.follow(url=next_page, callback=self.parse)
+
+

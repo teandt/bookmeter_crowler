@@ -1,3 +1,6 @@
 venv
-.env
-test_scr
+*.env
+*.json
+*.csv
+__pycache__
+
