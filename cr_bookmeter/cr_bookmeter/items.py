@@ -7,6 +7,10 @@ import scrapy
 
 
 class CrBookmeterItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    id = scrapy.Field()
+    title = scrapy.Field()
+    author = scrapy.Field()
+    date = scrapy.Field()
+    url = scrapy.Field()
+    amazon_url = scrapy.Field()
+    asin = scrapy.Field()
