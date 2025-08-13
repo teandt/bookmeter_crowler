@@ -7,4 +7,4 @@
 
 # 実行方法
 cd cr_bookmeter
-scrapy crawl bookmeter
+scrapy crawl bookmeter -o output.json
