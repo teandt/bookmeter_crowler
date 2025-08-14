@@ -11,7 +11,15 @@ class BookmeterSpider(scrapy.Spider):
     #start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
 
     def detail_parse(self, response):
+        '''
+        個別の書籍ページから詳細情報を取得
+        Item情報はmeta={"bookinfo": bookinfo}で指定
+        '''
+        
         bookinfo = response.meta["bookinfo"]
+        
+        #タイトルは個別書籍ページから参照しないと長い場合欠落してしまうため取り直し
+        bookinfo["title"] = response.xpath('//section[contains(@class, "books show")]/header[@class="show__header"]//h1[@class="inner__title"]/text()').get()
         amazon_url = response.xpath('//div[@class="bm-wrapper"]//div[@class="group__image"]/a/@href').get()
         bookinfo["amazon_url"] = amazon_url
 
@@ -32,6 +40,8 @@ class BookmeterSpider(scrapy.Spider):
             href = book.xpath('.//div[@class="book__thumbnail"]/div[@class="thumbnail__cover"]/a/@href').get()
 
             bookinfo["id"] = href.split('/')[-1]
+            
+            #取得するタイトルは長いと欠落する短縮版。 あとの個別書籍ページ参照で上書きする
             bookinfo["title"] = book.xpath('.//div[@class="detail__title"]//a/text()').get()
             bookinfo["author"] = book.xpath('.//ul[@class="detail__authors"]//a/text()').get()
             bookinfo["date"] = book.xpath('.//div[@class="detail__date"]//text()').get()
