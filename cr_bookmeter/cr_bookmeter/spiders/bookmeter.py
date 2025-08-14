@@ -8,14 +8,17 @@ class BookmeterSpider(scrapy.Spider):
     name = "bookmeter"
     allowed_domains = ["bookmeter.com"]
     start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/read"]
+    #start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
 
     def detail_parse(self, response):
         bookinfo = response.meta["bookinfo"]
-        bookinfo["amazon_url"] = response.xpath('//div[@class="bm-wrapper"]//div[@class="group__image"]/a/@href').get()
+        amazon_url = response.xpath('//div[@class="bm-wrapper"]//div[@class="group__image"]/a/@href').get()
+        bookinfo["amazon_url"] = amazon_url
 
-        match = re.search(r'/dp/(?:product/)?([A-Z0-9]{10})', bookinfo["amazon_url"])
-        if(match):
-            bookinfo["asin"] = match.group(1)
+        if amazon_url:
+            match = re.search(r'/dp/(?:product/)?([A-Z0-9]{10})', amazon_url)
+            if match:
+                bookinfo["asin"] = match.group(1)
 
         yield bookinfo
 
@@ -35,11 +38,7 @@ class BookmeterSpider(scrapy.Spider):
             bookinfo["url"] = "https://bookmeter.com" + href
             
             yield response.follow(url=bookinfo["url"], callback=self.detail_parse, meta={"bookinfo": bookinfo})
-            
-            yield bookinfo
         
         next_page = response.xpath('//ul[@class="bm-pagination"]//a[@rel="next"]/@href').get()
         if next_page is not None:
             yield response.follow(url=next_page, callback=self.parse)
-
-
