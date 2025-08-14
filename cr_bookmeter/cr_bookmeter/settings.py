@@ -25,7 +25,11 @@ ROBOTSTXT_OBEY = True
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
-DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 5
+
+# Download retry settings
+RETRY_ENABLED = True
+RETRY_TIMES = 5
 
 # Disable cookies (enabled by default)
 COOKIES_ENABLED = True
