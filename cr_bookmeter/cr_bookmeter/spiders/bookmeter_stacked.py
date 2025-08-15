@@ -1,5 +1,4 @@
 import scrapy
-import re
 from dotenv import dotenv_values
 from cr_bookmeter.items import CrBookmeterItem
 
