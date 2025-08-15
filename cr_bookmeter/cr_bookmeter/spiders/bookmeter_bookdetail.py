@@ -19,13 +19,13 @@ class BookmeterBookDetailSpider(scrapy.Spider):
         target_url = getattr(self, 'url', None)
 
         if target_url:
-            yield scrapy.Request(target_url, callback=self.detail_parse)
+            yield scrapy.Request(target_url, callback=self.parse)
         else:
             # 引数が指定されなかった場合エラー
             self.logger.error(f"No URL provided via '-a url=...'")
             exit()
             
-    def detail_parse(self, response):
+    def parse(self, response):
         '''
         個別の書籍ページから詳細情報を取得
         Item情報はmeta={"bookinfo": bookinfo}で指定
