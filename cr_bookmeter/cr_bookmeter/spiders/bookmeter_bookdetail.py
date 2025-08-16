@@ -36,6 +36,7 @@ class BookmeterBookDetailSpider(scrapy.Spider):
         detail_item["id"] = response.url.split('/')[-1]
         detail_item["title"] = response.xpath('//h1[@class="inner__title"]/text()').get()
         # TODO: ページ数のXPathを特定して実装
+        detail_item["pages"] = response.xpath('//section[contains(@class, "books show")]//section[contains(@class, "sidebar__group")]//section[contains(@class, "group__detail")]//dd[@class="bm-details-side__item"][2]/span[1]/text()').get()
         # detail_item["pages"] = response.xpath('...').get()
 
         amazon_url = response.xpath('//div[@class="bm-wrapper"]//div[@class="group__image"]/a/@href').get()
