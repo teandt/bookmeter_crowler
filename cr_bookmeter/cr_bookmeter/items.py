@@ -9,7 +9,7 @@ import scrapy
 class CrBookmeterItem(scrapy.Item):
     id = scrapy.Field()
     short_title = scrapy.Field()
-    author = scrapy.Field()
+    authors = scrapy.Field()
     date = scrapy.Field()
     url = scrapy.Field()
     amazon_url = scrapy.Field()

@@ -4,7 +4,7 @@ from cr_bookmeter.items import CrBookmeterItem
 
 class BookmeterStackedSpider(scrapy.Spider):
     env = dotenv_values("./env/.env")
-    name = "bookmeter_staked"
+    name = "bookmeter_stacked"
     allowed_domains = ["bookmeter.com"]
     start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
 
@@ -20,7 +20,7 @@ class BookmeterStackedSpider(scrapy.Spider):
             
             #取得するタイトルは長いと欠落する短縮版。 あとの個別書籍ページ参照で上書きする
             bookinfo["short_title"] = book.xpath('.//div[@class="detail__title"]//a/text()').get()
-            bookinfo["author"] = book.xpath('.//ul[@class="detail__authors"]//a/text()').get()
+            bookinfo["authors"] = book.xpath('.//ul[@class="detail__authors"]//a/text()').get()
             bookinfo["date"] = book.xpath('.//div[@class="detail__date"]//text()').get()
             bookinfo["url"] = "https://bookmeter.com" + href
             
