@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 engine = sqlalchemy.create_engine('sqlite:///bookmeter.db', echo=True)
 Base = declarative_base()
 
+### データベースのテーブル構造の設定 #############################################################################################################
 # リストの共通設定
 class BookListMixin:
     # book_idは各クラスでリレーション定義と共に個別に定義
@@ -48,6 +49,7 @@ class StackedBooks(BookListMixin, Base):
     def __repr__(self):
         return f"<StackedBooks(book_id='{self.book_id}', title='{self.title}', authors='{self.authors}', date='{self.date}', url='{self.url}')>"
 
+# 書籍詳細
 class BookDetail(Base):
     __tablename__ = 'book_detail'
     book_id = Column(String, primary_key=True)
