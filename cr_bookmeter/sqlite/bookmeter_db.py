@@ -7,7 +7,7 @@ from pathlib import Path
 # このスクリプト(bookmeter_db.py)が存在するディレクトリを取得
 _basedir = Path(__file__).resolve().parent
 
-# DBファイルの絶対パスを構築 (例: /home/tea/code/get-dokusho-meter/cr_bookmeter/sqlite/bookmeter.db)
+# DBファイルの絶対パスを構築
 _db_path = _basedir / "bookmeter.db"
 
 # create_engineに絶対パスを渡すことで、どこから実行しても同じDBファイルを参照するようになります
