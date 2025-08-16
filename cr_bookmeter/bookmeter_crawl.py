@@ -124,7 +124,7 @@ if __name__ == "__main__":
         try:
             logger.info("--- [積読本リスト] データ確認 ---")
             # タイトル順でソートして取得
-            stacked_books = session.query(StackedBooks).order_by(StackedBooks.title).all()
+            stacked_books = session.query(StackedBooks).order_by(StackedBooks.num).all()
             if stacked_books:
                 logger.info(f"{len(stacked_books)} 件の積読本データが見つかりました。")
                 for book in stacked_books:
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         try:
             logger.info("--- [読んだ本リスト] データ確認 ---")
             # タイトル順でソートして取得
-            read_books = session.query(ReadBooks).order_by(ReadBooks.title).all()
+            read_books = session.query(ReadBooks).order_by(ReadBooks.num).all()
             if read_books:
                 logger.info(f"{len(read_books)} 件の積読本データが見つかりました。")
                 for book in read_books:
