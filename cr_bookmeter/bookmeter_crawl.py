@@ -5,7 +5,14 @@ from scrapy.utils.project import get_project_settings
 from cr_bookmeter.spiders.bookmeter_read import BookmeterReadSpider
 from cr_bookmeter.spiders.bookmeter_stacked import BookmeterStackedSpider
 from cr_bookmeter.spiders.bookmeter_bookdetail import BookmeterBookDetailSpider
-from sqlite.bookmeter_db import engine, ReadBooks, StackedBooks, BookDetail
+from sqlite.bookmeter_db import (
+    Base,
+    BookDetail,
+    ReadBooks,
+    StackedBooks,
+    _db_path,
+    engine,
+)
 from sqlalchemy.orm import sessionmaker
 from twisted.internet.error import ReactorNotRestartable
 
@@ -32,6 +39,13 @@ if not any(vars(args).values()):
     parser.error("少なくとも1つのオプション (-st, -rd, -vb) を指定してください。")
 
 if __name__ == "__main__":
+
+    # DBファイルが存在しない場合は作成する
+    if not _db_path.exists():
+        logger.info(f"データベースファイルが見つかりません。新しいファイルを作成します: {_db_path}")
+        # sqlite/bookmeter_db.pyで定義されたテーブルをすべて作成
+        Base.metadata.create_all(engine)
+        logger.info("データベースとテーブルを作成しました。")
 
     # CrawlerProcessは一度だけ初期化し、実行したいスパイダーをすべて追加してから
     # 最後に一度だけstart()を呼び出します。
@@ -123,6 +137,3 @@ if __name__ == "__main__":
         
 
             
-
-
-
