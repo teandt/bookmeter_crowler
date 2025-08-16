@@ -1,46 +1,49 @@
 import scrapy
 import re
 from dotenv import dotenv_values
-from cr_bookmeter.items import CrBookmeterItem
+from cr_bookmeter.items import CrBookmeterDetailItem
 
 class BookmeterBookDetailSpider(scrapy.Spider):
     env = dotenv_values("./env/.env")
     name = "bookmeter_bookdetail"
     allowed_domains = ["bookmeter.com"]
-    # start_urlsは使わないので削除し、start_requestsメソッドを実装します
+    custom_settings = {
+        'FEED_URI': 'output_details.json',
+        'FEED_FORMAT': 'json',
+        'FEED_EXPORT_ENCODING': 'utf-8',
+    }
 
-    def start_requests(self):
+    def __init__(self, target_urls=None, *args, **kwargs):
         """
-        クロールの開始リクエストを生成します。
-        -a url="..." のように引数が渡された場合はそのURLを、
-        渡されなかった場合はデフォルトのURLを使用します。
+        コンストラクタ。CrawlerProcessから引数を受け取ります。
         """
-        # getattrで引数を取得します。引数がなければNoneが返ります。
-        target_url = getattr(self, 'url', None)
-
-        if target_url:
-            yield scrapy.Request(target_url, callback=self.parse)
+        super().__init__(*args, **kwargs)
+        # 実行スクリプトからURLリストを受け取り、start_urlsに設定
+        if target_urls:
+            self.start_urls = target_urls
+        # -a url=... で単一URLが渡された場合も考慮
+        elif hasattr(self, 'url'):
+            self.start_urls = [self.url]
         else:
-            # 引数が指定されなかった場合エラー
-            self.logger.error(f"No URL provided via '-a url=...'")
-            exit()
-            
+            self.start_urls = []
+
     def parse(self, response):
         '''
         個別の書籍ページから詳細情報を取得
-        Item情報はmeta={"bookinfo": bookinfo}で指定
         '''
-        
-        bookinfo = response.meta["bookinfo"]
-        
-        #タイトルは個別書籍ページから参照しないと長い場合欠落してしまうため取り直し
-        bookinfo["title"] = response.xpath('//section[contains(@class, "books show")]/header[@class="show__header"]//h1[@class="inner__title"]/text()').get()
+        detail_item = CrBookmeterDetailItem()
+
+        detail_item["id"] = response.url.split('/')[-1]
+        detail_item["title"] = response.xpath('//h1[@class="inner__title"]/text()').get()
+        # TODO: ページ数のXPathを特定して実装
+        # detail_item["pages"] = response.xpath('...').get()
+
         amazon_url = response.xpath('//div[@class="bm-wrapper"]//div[@class="group__image"]/a/@href').get()
-        bookinfo["amazon_url"] = amazon_url
+        detail_item["amazon_url"] = amazon_url
 
         if amazon_url:
             match = re.search(r'/dp/(?:product/)?([A-Z0-9]{10})', amazon_url)
             if match:
-                bookinfo["asin"] = match.group(1)
+                detail_item["asin"] = match.group(1)
 
-        yield bookinfo
+        yield detail_item

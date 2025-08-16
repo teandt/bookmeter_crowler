@@ -4,6 +4,9 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from cr_bookmeter.spiders.bookmeter_read import BookmeterReadSpider
 from cr_bookmeter.spiders.bookmeter_stacked import BookmeterStackedSpider
+from cr_bookmeter.spiders.bookmeter_bookdetail import BookmeterBookDetailSpider
+from sqlite.bookmeter_db import engine, ReadBooks, StackedBooks, BookDetail
+from sqlalchemy.orm import sessionmaker
 from twisted.internet.error import ReactorNotRestartable
 
 # logのフォーマットはscrapyに合わせる形で指定しておく
@@ -28,6 +31,7 @@ if not any(vars(args).values()):
     parser.error("少なくとも1つのオプション (-st, -rd, -vb) を指定してください。")
 
 if __name__ == "__main__":
+
     # CrawlerProcessは一度だけ初期化し、実行したいスパイダーをすべて追加してから
     # 最後に一度だけstart()を呼び出します。
     settings = get_project_settings()
@@ -46,7 +50,45 @@ if __name__ == "__main__":
         process.crawl(BookmeterReadSpider)
         crawled_something = True
 
-    # 積読本リスト／読んだ本リストで書籍詳細を取得していない本がある場合に詳細を取得する処理
+    # 書籍詳細の取得が指定されている場合、DBから未取得のURLリストを取得
+    urls_to_crawl_for_detail = []
+    if args.verbose:
+        logger.info("書籍詳細の取得準備を開始します。")
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        try:
+            # 詳細未取得のURLをリストアップ
+            # outerjoinを使い、BookDetailにエントリがないものを抽出
+            books_no_detail = (
+                session.query(ReadBooks)
+                .outerjoin(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+                .filter(BookDetail.book_id.is_(None))
+                .all()
+            )
+            urls_to_crawl_for_detail.extend([book.url for book in books_no_detail])
+
+            books_no_detail = (
+                session.query(StackedBooks)
+                .outerjoin(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+                .filter(BookDetail.book_id.is_(None))
+                .all()
+            )
+            urls_to_crawl_for_detail.extend([book.url for book in books_no_detail])
+
+            # 重複を削除
+            urls_to_crawl_for_detail = sorted(list(set(urls_to_crawl_for_detail)))
+
+        finally:
+            session.close()
+
+    # 詳細取得用のスパイダーをキューに追加
+    if args.verbose and urls_to_crawl_for_detail:
+        logger.info(f"詳細未取得の書籍が {len(urls_to_crawl_for_detail)} 件見つかりました。クロールをキューに追加します。")
+        process.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl_for_detail)
+        crawled_something = True
+    elif args.verbose:
+        logger.info("DBに存在する書籍はすべて詳細取得済みです。")
 
     # キューにスパイダーが追加されている場合のみ、クローリングを開始します。
     if crawled_something:
@@ -58,3 +100,6 @@ if __name__ == "__main__":
             logger.error("Reactorは再起動できません。スクリプトの構造を確認してください。")
         except Exception as e:
             logger.error(f"クローリング中に予期せぬエラーが発生しました: {e}", exc_info=True)
+
+
+
