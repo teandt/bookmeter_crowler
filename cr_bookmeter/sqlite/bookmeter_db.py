@@ -60,8 +60,18 @@ class BookDetail(Base):
 
     # ReadBooksとStackedBooksからの逆リレーションを定義
     # uselist=False は、こちら側が「一対一」関係の「一」であることを示す
-    read_book_entry = relationship("ReadBooks", back_populates="detail", uselist=False)
-    stacked_book_entry = relationship("StackedBooks", back_populates="detail", uselist=False)
+    read_book_entry = relationship(
+        "ReadBooks",
+        primaryjoin="BookDetail.book_id == ReadBooks.book_id",
+        back_populates="detail",
+        uselist=False,
+    )
+    stacked_book_entry = relationship(
+        "StackedBooks",
+        primaryjoin="BookDetail.book_id == StackedBooks.book_id",
+        back_populates="detail",
+        uselist=False,
+    )
 
     def __repr__(self):
         return f"<BookDetail(book_id='{self.book_id}', title='{self.title}', pages='{self.pages}', amazon_url='{self.amazon_url}', asin='{self.asin}')>"

@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-st', '--stacked', help='積読本リスト取得', action='store_true')
 parser.add_argument('-rd', '--read', help='読んだ本リスト取得', action='store_true')
 parser.add_argument('-vb', '--verbose', help='書籍詳細の取得', action='store_true')
+parser.add_argument('-ck', '--checkdata', help='DBのデータ確認', action='store_true')
 args = parser.parse_args()
 
 if not any(vars(args).values()):
@@ -101,5 +102,24 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"クローリング中に予期せぬエラーが発生しました: {e}", exc_info=True)
 
+    if args.checkdata:
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
+            logger.info("--- [積読本リスト] データ確認 ---")
+            # タイトル順でソートして取得
+            stacked_books = session.query(StackedBooks).order_by(StackedBooks.title).all()
+            if stacked_books:
+                logger.info(f"{len(stacked_books)} 件の積読本データが見つかりました。")
+                for book in stacked_books:
+                    # DBモデルの__repr__メソッドで定義した形式で出力されます
+                    print(book)
+            else:
+                logger.info("積読本リストにデータはありません。")
+        finally:
+            session.close()
+            logger.info("--- DBセッションをクローズしました ---")
 
+        
 
+            
