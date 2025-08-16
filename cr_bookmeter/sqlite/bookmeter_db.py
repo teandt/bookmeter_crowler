@@ -2,8 +2,16 @@ import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String
 from sqlalchemy.orm import sessionmaker, relationship
+from pathlib import Path
 
-engine = sqlalchemy.create_engine('sqlite:///bookmeter.db', echo=True)
+# このスクリプト(bookmeter_db.py)が存在するディレクトリを取得
+_basedir = Path(__file__).parent
+
+# DBファイルの絶対パスを構築 (例: /home/tea/code/get-dokusho-meter/cr_bookmeter/sqlite/bookmeter.db)
+_db_path = _basedir / "bookmeter.db"
+
+# create_engineに絶対パスを渡すことで、どこから実行しても同じDBファイルを参照するようになります
+engine = sqlalchemy.create_engine(f'sqlite:///{_db_path}', echo=True)
 Base = declarative_base()
 
 ### データベースのテーブル構造の設定 #############################################################################################################
@@ -62,12 +70,14 @@ class BookDetail(Base):
     # uselist=False は、こちら側が「一対一」関係の「一」であることを示す
     read_book_entry = relationship(
         "ReadBooks",
+        foreign_keys=[ReadBooks.book_id],
         primaryjoin="BookDetail.book_id == ReadBooks.book_id",
         back_populates="detail",
         uselist=False,
     )
     stacked_book_entry = relationship(
         "StackedBooks",
+        foreign_keys=[StackedBooks.book_id],
         primaryjoin="BookDetail.book_id == StackedBooks.book_id",
         back_populates="detail",
         uselist=False,
