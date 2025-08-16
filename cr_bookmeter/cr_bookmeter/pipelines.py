@@ -89,6 +89,26 @@ class CrBookmeterPipeline:
                 self.session.rollback()
                 raise
             return item
+
+        elif spider.name == 'bookmeter_bookdetail':
+            adapter = ItemAdapter(item)
+            book_detail = BookDetail(
+                book_id = adapter.get('id'),
+                title = adapter.get('title'),
+                pages = adapter.get('pages'),
+                amazon_url = adapter.get('amazon_url'),
+                asin = adapter.get('asin')
+            )
+            try:
+                # session.merge() を使うと、主キーが同じデータがあれば更新、なければ挿入（UPSERT）してくれます
+                self.session.merge(book_detail)
+                self.session.commit()
+                spider.logger.debug(f"Saved book detail to DB: {adapter.get('title')}")
+            except Exception as e:
+                spider.logger.error(f"Failed to save book detail to DB: {e}")
+                self.session.rollback()
+                raise
+            return item
         
         # 上記以外のスパイダーの場合は、そのままItemを返します
         return item
