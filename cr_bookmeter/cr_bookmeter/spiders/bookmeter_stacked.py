@@ -7,6 +7,11 @@ class BookmeterStackedSpider(scrapy.Spider):
     name = "bookmeter_stacked"
     allowed_domains = ["bookmeter.com"]
     start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
+    custom_settings = {
+        'FEED_URI': 'output_stacked.json',
+        'FEED_FORMAT': 'json',
+        'FEED_EXPORT_ENCODING': 'utf-8',
+    }
 
     def parse(self, response):
         books = response.xpath('//li[@class="group__book"]')
