@@ -152,4 +152,23 @@ if __name__ == "__main__":
                 logger.info("積読本リストにデータはありません。")
         finally:
             session.close()
-            logger.info("--- DBセッションをクローズしました ---")            
+            logger.info("--- DBセッションをクローズしました ---") 
+
+    if args.checkdetail:
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
+            logger.info("--- [書籍詳細] データ確認 ---")
+            # タイトル順でソートして取得
+            book_details = session.query(BookDetail).order_by(BookDetail.title).all()
+            if book_details:
+                logger.info(f"{len(book_details)} 件の書籍詳細データが見つかりました。")
+                for book in book_details:
+                    # DBモデルの__repr__メソッドで定義した形式で出力されます
+                    print(book)
+            else:
+                logger.info("書籍詳細にデータはありません。")
+        finally:
+            session.close()
+            logger.info("--- DBセッションをクローズしました ---")
+        
