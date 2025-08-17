@@ -4,7 +4,7 @@
 - SQLAlchemy
 
 # 設定
-読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env のUSER_ID="0000"を自分のユーザIDに変更して実行する。
+読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env にUSER_ID="0000"を設定、自分のユーザIDに変更して実行する。
 
 # 実行方法
 cd cr_bookmeter
