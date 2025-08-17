@@ -42,12 +42,13 @@ class BookmeterSpider(scrapy.Spider):
             bookinfo["id"] = href.split('/')[-1]
             
             #取得するタイトルは長いと欠落する短縮版。 あとの個別書籍ページ参照で上書きする
-            bookinfo["title"] = book.xpath('.//div[@class="detail__title"]//a/text()').get()
+            bookinfo["short_title"] = book.xpath('.//div[@class="detail__title"]//a/text()').get()
             bookinfo["author"] = book.xpath('.//ul[@class="detail__authors"]//a/text()').get()
             bookinfo["date"] = book.xpath('.//div[@class="detail__date"]//text()').get()
             bookinfo["url"] = "https://bookmeter.com" + href
             
-            yield response.follow(url=bookinfo["url"], callback=self.detail_parse, meta={"bookinfo": bookinfo})
+            yield bookinfo
+            #yield response.follow(url=bookinfo["url"], callback=self.detail_parse, meta={"bookinfo": bookinfo})
         
         next_page = response.xpath('//ul[@class="bm-pagination"]//a[@rel="next"]/@href').get()
         if next_page is not None:

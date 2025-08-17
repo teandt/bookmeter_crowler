@@ -4,3 +4,6 @@ venv
 *.csv
 *.pyc
 */__pycache__/
+*.db
+*.txt
+*.log

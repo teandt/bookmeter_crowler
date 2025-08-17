@@ -25,7 +25,7 @@ ROBOTSTXT_OBEY = True
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
-DOWNLOAD_DELAY = 5
+DOWNLOAD_DELAY = 3
 
 # Download retry settings
 RETRY_ENABLED = True
@@ -63,9 +63,9 @@ COOKIES_ENABLED = True
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "cr_bookmeter.pipelines.CrBookmeterPipeline": 300,
-#}
+ITEM_PIPELINES = {
+   "cr_bookmeter.pipelines.CrBookmeterPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
