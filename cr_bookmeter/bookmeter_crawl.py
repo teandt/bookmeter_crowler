@@ -123,13 +123,21 @@ if __name__ == "__main__":
         session = Session()
         try:
             logger.info("--- [積読本リスト] データ確認 ---")
-            # タイトル順でソートして取得
-            stacked_books = session.query(StackedBooks).order_by(StackedBooks.num).all()
-            if stacked_books:
-                logger.info(f"{len(stacked_books)} 件の積読本データが見つかりました。")
-                for book in stacked_books:
-                    # DBモデルの__repr__メソッドで定義した形式で出力されます
-                    print(book)
+            # BookDetailと外部結合して書籍詳細も一緒に取得
+            results = (
+                session.query(StackedBooks, BookDetail)
+                .outerjoin(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+                .order_by(StackedBooks.num)
+                .all()
+            )
+            if results:
+                logger.info(f"{len(results)} 件の積読本データが見つかりました。")
+                for stacked_book, book_detail in results:
+                    # DBモデルの__repr__メソッドで定義した形式で出力
+                    print(stacked_book)
+                    if book_detail:
+                        # 詳細情報が存在すれば、インデントして表示
+                        print(f"  └ {book_detail}")
             else:
                 logger.info("積読本リストにデータはありません。")
         finally:
@@ -141,15 +149,22 @@ if __name__ == "__main__":
         session = Session()
         try:
             logger.info("--- [読んだ本リスト] データ確認 ---")
-            # タイトル順でソートして取得
-            read_books = session.query(ReadBooks).order_by(ReadBooks.num).all()
-            if read_books:
-                logger.info(f"{len(read_books)} 件の積読本データが見つかりました。")
-                for book in read_books:
-                    # DBモデルの__repr__メソッドで定義した形式で出力されます
-                    print(book)
+            # BookDetailと外部結合して書籍詳細も一緒に取得
+            results = (
+                session.query(ReadBooks, BookDetail)
+                .outerjoin(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+                .order_by(ReadBooks.num)
+                .all()
+            )
+            if results:
+                logger.info(f"{len(results)} 件の読んだ本データが見つかりました。")
+                for read_book, book_detail in results:
+                    # DBモデルの__repr__メソッドで定義した形式で出力
+                    print(read_book)
+                    if book_detail:
+                        print(f"  └ {book_detail}")
             else:
-                logger.info("積読本リストにデータはありません。")
+                logger.info("読んだ本リストにデータはありません。")
         finally:
             session.close()
             logger.info("--- DBセッションをクローズしました ---") 
