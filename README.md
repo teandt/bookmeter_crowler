@@ -2,6 +2,10 @@
 - scrapy
 - python-dotenv
 - SQLAlchemy
+とりあえずpip freezeしておいたので
+```
+pip install -r requirements
+```
 
 # 設定
 読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env にUSER_ID="0000"を設定、自分のユーザIDに変更して実行する。
