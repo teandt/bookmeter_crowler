@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser(
                     epilog='Text at the bottom of help')
 parser.add_argument('-st', '--stacked', help='積読本リスト取得', action='store_true')
 parser.add_argument('-rd', '--read', help='読んだ本リスト取得', action='store_true')
-parser.add_argument('-vb', '--verbose', help='書籍詳細の取得', action='store_true')
+parser.add_argument('-dt', '--detail', help='書籍詳細の取得', action='store_true')
 parser.add_argument('-ckst', '--checkstacked', help='DBのデータ確認（積読本）', action='store_true')
 parser.add_argument('-ckrd', '--checkread', help='DBのデータ確認（読んだ本）', action='store_true')
 parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細）', action='store_true')
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     # 書籍詳細の取得が指定されている場合、DBから未取得のURLリストを取得
     urls_to_crawl_for_detail = []
-    if args.verbose:
+    if args.detail:
         logger.info("書籍詳細の取得準備を開始します。")
         Session = sessionmaker(bind=engine)
         session = Session()
@@ -100,11 +100,11 @@ if __name__ == "__main__":
             session.close()
 
     # 詳細取得用のスパイダーをキューに追加
-    if args.verbose and urls_to_crawl_for_detail:
+    if args.detail and urls_to_crawl_for_detail:
         logger.info(f"詳細未取得の書籍が {len(urls_to_crawl_for_detail)} 件見つかりました。クロールをキューに追加します。")
         process.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl_for_detail)
         crawled_something = True
-    elif args.verbose:
+    elif args.detail:
         logger.info("DBに存在する書籍はすべて詳細取得済みです。")
 
     # キューにスパイダーが追加されている場合のみ、クローリングを開始します。

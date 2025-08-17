@@ -37,7 +37,7 @@ python3 bookmeter_crawl.py [オプション]
 ```
   -st, --stacked        積読本リスト取得
   -rd, --read           読んだ本リスト取得
-  -vb, --verbose        書籍詳細の取得
+  -dt, --detail         書籍詳細の取得
   -ckst, --checkstacked
                         DBのデータ確認（積読本）
   -ckrd, --checkread    DBのデータ確認（読んだ本）
