@@ -118,72 +118,54 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"クローリング中に予期せぬエラーが発生しました: {e}", exc_info=True)
 
-    if args.checkstacked:
+    # DBデータ確認処理
+    # セッションを一度だけ開始し、必要な処理を行う
+    if args.checkstacked or args.checkread or args.checkdetail:
+        logger.info("--- DBデータ確認を開始します ---")
         Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            logger.info("--- [積読本リスト] データ確認 ---")
-            # BookDetailと外部結合して書籍詳細も一緒に取得
-            results = (
-                session.query(StackedBooks, BookDetail)
-                .outerjoin(BookDetail, StackedBooks.book_id == BookDetail.book_id)
-                .order_by(StackedBooks.num)
-                .all()
-            )
-            if results:
-                logger.info(f"{len(results)} 件の積読本データが見つかりました。")
-                for stacked_book, book_detail in results:
-                    # DBモデルの__repr__メソッドで定義した形式で出力
-                    print(stacked_book)
-                    if book_detail:
-                        # 詳細情報が存在すれば、インデントして表示
-                        print(f"  └ {book_detail}")
-            else:
-                logger.info("積読本リストにデータはありません。")
-        finally:
-            session.close()
-            logger.info("--- DBセッションをクローズしました ---")
+        with Session() as session:
+            if args.checkstacked:
+                logger.info("--- [積読本リスト] データ確認 ---")
+                results = (
+                    session.query(StackedBooks, BookDetail)
+                    .outerjoin(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+                    .order_by(StackedBooks.num)
+                    .all()
+                )
+                if results:
+                    logger.info(f"{len(results)} 件の積読本データが見つかりました。")
+                    for stacked_book, book_detail in results:
+                        print(stacked_book)
+                        if book_detail:
+                            print(f"  └ {book_detail}")
+                else:
+                    logger.info("積読本リストにデータはありません。")
 
-    if args.checkread:
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            logger.info("--- [読んだ本リスト] データ確認 ---")
-            # BookDetailと外部結合して書籍詳細も一緒に取得
-            results = (
-                session.query(ReadBooks, BookDetail)
-                .outerjoin(BookDetail, ReadBooks.book_id == BookDetail.book_id)
-                .order_by(ReadBooks.num)
-                .all()
-            )
-            if results:
-                logger.info(f"{len(results)} 件の読んだ本データが見つかりました。")
-                for read_book, book_detail in results:
-                    # DBモデルの__repr__メソッドで定義した形式で出力
-                    print(read_book)
-                    if book_detail:
-                        print(f"  └ {book_detail}")
-            else:
-                logger.info("読んだ本リストにデータはありません。")
-        finally:
-            session.close()
-            logger.info("--- DBセッションをクローズしました ---") 
+            if args.checkread:
+                logger.info("--- [読んだ本リスト] データ確認 ---")
+                results = (
+                    session.query(ReadBooks, BookDetail)
+                    .outerjoin(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+                    .order_by(ReadBooks.num)
+                    .all()
+                )
+                if results:
+                    logger.info(f"{len(results)} 件の読んだ本データが見つかりました。")
+                    for read_book, book_detail in results:
+                        print(read_book)
+                        if book_detail:
+                            print(f"  └ {book_detail}")
+                else:
+                    logger.info("読んだ本リストにデータはありません。")
 
-    if args.checkdetail:
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            logger.info("--- [書籍詳細] データ確認 ---")
-            # タイトル順でソートして取得
-            book_details = session.query(BookDetail).order_by(BookDetail.title).all()
-            if book_details:
-                logger.info(f"{len(book_details)} 件の書籍詳細データが見つかりました。")
-                for book in book_details:
-                    # DBモデルの__repr__メソッドで定義した形式で出力されます
-                    print(book)
-            else:
-                logger.info("書籍詳細にデータはありません。")
-        finally:
-            session.close()
-            logger.info("--- DBセッションをクローズしました ---")
+            if args.checkdetail:
+                logger.info("--- [書籍詳細] データ確認 ---")
+                book_details = session.query(BookDetail).order_by(BookDetail.title).all()
+                if book_details:
+                    logger.info(f"{len(book_details)} 件の書籍詳細データが見つかりました。")
+                    for book in book_details:
+                        print(book)
+                else:
+                    logger.info("書籍詳細にデータはありません。")
+        logger.info("--- DBデータ確認が完了し、セッションをクローズしました ---")
         
