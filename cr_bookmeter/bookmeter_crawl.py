@@ -38,7 +38,7 @@ parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細
 args = parser.parse_args()
 
 if not any(vars(args).values()):
-    parser.error("少なくとも1つのオプション (-st, -rd, -vb) を指定してください。")
+    parser.error("少なくとも1つのオプション (-st, -rd, -dt) を指定してください。")
 
 if __name__ == "__main__":
 
