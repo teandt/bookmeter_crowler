@@ -20,7 +20,9 @@ scrapyのSpider確認用にJSONファイル出力するようになっている�
 - scrapy
 - python-dotenv
 - SQLAlchemy
+  
 とりあえずpip freezeしておいたので
+
 ```
 pip install -r requirements
 ```
