@@ -35,10 +35,11 @@ parser.add_argument('-dt', '--detail', help='書籍詳細の取得', action='sto
 parser.add_argument('-ckst', '--checkstacked', help='DBのデータ確認（積読本）', action='store_true')
 parser.add_argument('-ckrd', '--checkread', help='DBのデータ確認（読んだ本）', action='store_true')
 parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細）', action='store_true')
+parser.add_argument('-deldt', '--deletedetail', help='不要な書籍詳細データを削除', action='store_true')
 args = parser.parse_args()
 
 if not any(vars(args).values()):
-    parser.error("少なくとも1つのオプション (-st, -rd, -dt) を指定してください。")
+    parser.error("少なくとも1つのオプションを指定してください。")
 
 if __name__ == "__main__":
 
@@ -117,6 +118,35 @@ if __name__ == "__main__":
             logger.error("Reactorは再起動できません。スクリプトの構造を確認してください。")
         except Exception as e:
             logger.error(f"クローリング中に予期せぬエラーが発生しました: {e}", exc_info=True)
+
+    # 不要な書籍詳細データの削除処理
+    if args.deletedetail:
+        logger.info("--- 不要な書籍詳細データの削除を開始します ---")
+        Session = sessionmaker(bind=engine)
+        with Session() as session:
+            try:
+                # BookDetail にあって ReadBooks にない、かつ StackedBooks にもない書籍詳細を探す
+                details_to_delete = (
+                    session.query(BookDetail)
+                    .outerjoin(ReadBooks, BookDetail.book_id == ReadBooks.book_id)
+                    .outerjoin(StackedBooks, BookDetail.book_id == StackedBooks.book_id)
+                    .filter(ReadBooks.book_id.is_(None), StackedBooks.book_id.is_(None))
+                    .all()
+                )
+
+                if details_to_delete:
+                    logger.info(f"{len(details_to_delete)} 件の不要な書籍詳細データを削除します。")
+                    for detail in details_to_delete:
+                        logger.info(f"  - 削除対象: {detail.title} (ID: {detail.book_id})")
+                        session.delete(detail)
+                    session.commit()
+                    logger.info("削除が完了しました。")
+                else:
+                    logger.info("削除対象の不要な書籍詳細データはありませんでした。")
+            except Exception as e:
+                logger.error(f"不要な書籍詳細データの削除中にエラーが発生しました: {e}", exc_info=True)
+                session.rollback()
+        logger.info("--- 不要な書籍詳細データの削除が完了しました ---")
 
     # DBデータ確認処理
     # セッションを一度だけ開始し、必要な処理を行う
