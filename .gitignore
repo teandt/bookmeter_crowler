@@ -7,3 +7,4 @@ venv
 *.db
 *.txt
 *.log
+docker-compose.yml

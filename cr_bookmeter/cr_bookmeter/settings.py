@@ -45,15 +45,23 @@ COOKIES_ENABLED = True
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    "cr_bookmeter.middlewares.CrBookmeterSpiderMiddleware": 543,
-#}
+SPIDER_MIDDLEWARES = {
+   # "cr_bookmeter.middlewares.CrBookmeterSpiderMiddleware": 543,
+   "scrapy_splash.SplashDeduplicateArgsMiddleware": 100,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    "cr_bookmeter.middlewares.CrBookmeterDownloaderMiddleware": 543,
-#}
+DOWNLOADER_MIDDLEWARES = {
+   # "cr_bookmeter.middlewares.CrBookmeterDownloaderMiddleware": 543,
+   "scrapy_splash.SplashCookiesMiddleware": 723,
+   "scrapy_splash.SplashMiddleware": 725,
+   "scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware": 810,
+}
+
+# --- Splash Settings ---
+SPLASH_URL = 'http://localhost:8050'
+REQUEST_FINGERPRINTER_CLASS = 'scrapy_splash.SplashRequestFingerprinter'
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html

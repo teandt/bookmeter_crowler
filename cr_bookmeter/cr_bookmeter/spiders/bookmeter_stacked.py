@@ -1,17 +1,29 @@
 import scrapy
 from dotenv import dotenv_values
 from cr_bookmeter.items import CrBookmeterItem
+from scrapy_splash import SplashRequest
+from . import lua_scripts
 
 class BookmeterStackedSpider(scrapy.Spider):
     env = dotenv_values("./env/.env")
     name = "bookmeter_stacked"
-    allowed_domains = ["bookmeter.com"]
-    start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
+    allowed_domains = ["bookmeter.com", "localhost"]
     custom_settings = {
         'FEED_URI': 'output_stacked.json',
         'FEED_FORMAT': 'json',
         'FEED_EXPORT_ENCODING': 'utf-8',
     }
+
+    def start_requests(self):
+        url = "https://bookmeter.com/users/{}".format(self.env["USER_ID"])+"/books/stacked"
+        yield SplashRequest(
+            url, self.parse, endpoint='execute',
+            args={
+                'lua_source': lua_scripts.BOOKMETER_LUA_SCRIPT,
+                'wait_for_selector': 'ul.content-list--book',
+                'timeout': 90,
+            }
+        )
 
     def parse(self, response):
         books = response.xpath('//li[@class="group__book"]')
@@ -20,6 +32,10 @@ class BookmeterStackedSpider(scrapy.Spider):
             bookinfo = CrBookmeterItem()
 
             href = book.xpath('.//div[@class="book__thumbnail"]/div[@class="thumbnail__cover"]/a/@href').get()
+
+            if not href:
+                self.logger.warning(f"Could not find href for a book on page {response.url}")
+                continue
 
             bookinfo["id"] = href.split('/')[-1]
             
@@ -32,4 +48,11 @@ class BookmeterStackedSpider(scrapy.Spider):
         
         next_page = response.xpath('//ul[@class="bm-pagination"]//a[@rel="next"]/@href').get()
         if next_page is not None:
-            yield response.follow(url=next_page, callback=self.parse)
+            yield SplashRequest(
+                response.urljoin(next_page), self.parse, endpoint='execute',
+                args={
+                    'lua_source': lua_scripts.BOOKMETER_LUA_SCRIPT,
+                    'wait_for_selector': 'ul.content-list--book',
+                    'timeout': 90,
+                }
+            )
