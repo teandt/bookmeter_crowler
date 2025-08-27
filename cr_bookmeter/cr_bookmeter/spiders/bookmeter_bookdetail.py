@@ -2,11 +2,13 @@ import scrapy
 import re
 from dotenv import dotenv_values
 from cr_bookmeter.items import CrBookmeterDetailItem
+from scrapy_splash import SplashRequest
+from . import lua_scripts
 
 class BookmeterBookDetailSpider(scrapy.Spider):
     env = dotenv_values("./env/.env")
     name = "bookmeter_bookdetail"
-    allowed_domains = ["bookmeter.com"]
+    allowed_domains = ["bookmeter.com", "localhost"]
     custom_settings = {
         'FEED_URI': 'output_details.json',
         'FEED_FORMAT': 'json',
@@ -26,6 +28,23 @@ class BookmeterBookDetailSpider(scrapy.Spider):
             self.start_urls = [self.url]
         else:
             self.start_urls = []
+
+    def start_requests(self):
+        if not self.start_urls:
+            self.logger.info("No target URLs provided for book details.")
+            return
+
+        for url in self.start_urls:
+            yield SplashRequest(
+                url,
+                self.parse,
+                endpoint='execute',
+                args={
+                    'lua_source': lua_scripts.BOOKMETER_LUA_SCRIPT,
+                    'wait_for_selector': 'h1.inner__title',
+                    'timeout': 90,
+                }
+            )
 
     def parse(self, response):
         '''

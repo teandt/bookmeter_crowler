@@ -20,6 +20,7 @@ scrapyのSpider確認用にJSONファイル出力するようになっている�
 - scrapy
 - python-dotenv
 - SQLAlchemy
+- scrapy-splash
   
 とりあえずpip freezeしておいたので
 
@@ -30,9 +31,17 @@ pip install -r requirements
 # 設定
 読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env にUSER_ID="0000"を設定、自分のユーザIDに変更して実行する。
 
+splash実行のために事前にdocker-compose.ymlを編集して環境を設定しておく。
+必要があればポート番号はcr_bookmeter/settings.pyの
+```
+SPLASH_URL = 'http://localhost:8050'
+```
+をメンテナンス。
+
 # 実行方法
 ```
 cd cr_bookmeter
+docker compose up -d
 python3 bookmeter_crawl.py [オプション]
 ```
 オプションはヘルプを見たほうが間違いないと思うけど一応リスト
