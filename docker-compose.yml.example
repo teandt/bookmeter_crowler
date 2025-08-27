@@ -1,0 +1,6 @@
+services:
+  splash:
+    image: scrapinghub/splash
+    container_name: "scrapinghub-splash"
+    ports:
+      - "8050:8050"
