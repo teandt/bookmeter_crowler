@@ -1,5 +1,6 @@
 import argparse
 import logging
+import csv
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from cr_bookmeter.spiders.bookmeter_read import BookmeterReadSpider
@@ -13,6 +14,8 @@ from sqlite.bookmeter_db import (
     _db_path,
     engine,
 )
+
+from csvdata import booklog_csv_data
 from sqlalchemy.orm import sessionmaker
 from twisted.internet.error import ReactorNotRestartable
 
@@ -36,6 +39,7 @@ parser.add_argument('-ckst', '--checkstacked', help='DBのデータ確認（積�
 parser.add_argument('-ckrd', '--checkread', help='DBのデータ確認（読んだ本）', action='store_true')
 parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細）', action='store_true')
 parser.add_argument('-deldt', '--deletedetail', help='不要な書籍詳細データを削除', action='store_true')
+parser.add_argument('-csv', '--csv', help='CSV出力', action='store_true')
 args = parser.parse_args()
 
 if not any(vars(args).values()):
@@ -198,4 +202,114 @@ if __name__ == "__main__":
                 else:
                     logger.info("書籍詳細にデータはありません。")
         logger.info("--- DBデータ確認が完了し、セッションをクローズしました ---")
+
+    if args.csv:
+        logger.info("--- ブクログ形式CSV出力処理を開始します ---")
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        try:
+            # 事前チェック: 詳細データが揃っているか
+            logger.info("書籍詳細データが全て揃っているかチェックします...")
+
+            # ReadBooksで詳細がないものをカウント
+            missing_read_count = (
+                session.query(ReadBooks)
+                .outerjoin(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+                .filter(BookDetail.book_id.is_(None))
+                .count()
+            )
+
+            # StackedBooksで詳細がないものをカウント
+            missing_stacked_count = (
+                session.query(StackedBooks)
+                .outerjoin(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+                .filter(BookDetail.book_id.is_(None))
+                .count()
+            )
+
+            if missing_read_count > 0 or missing_stacked_count > 0:
+                logger.error("書籍詳細が取得できていない本があります。CSV出力はできません。")
+                if missing_read_count > 0:
+                    logger.error(f"読んだ本リストで {missing_read_count} 件の詳細がありません。")
+                if missing_stacked_count > 0:
+                    logger.error(f"積読本リストで {missing_stacked_count} 件の詳細がありません。")
+                logger.error("-dt オプションを指定して書籍詳細を取得してください。")
+            else:
+                logger.info("すべての書籍詳細データが揃っています。CSVデータの作成を開始します。")
+
+                all_books_data = []
+
+                # 読んだ本を取得
+                read_books = (
+                    session.query(ReadBooks, BookDetail)
+                    .join(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+                    .all()
+                )
+                for read_book, detail in read_books:
+                    read_status = "読み終わった"
+                    registered_date = ''
+                    read_date = read_book.date if read_book.date and read_book.date != '日付不明' else ''
+
+                    csv_data = booklog_csv_data(
+                        service_id=1,
+                        item_id=detail.asin,
+                        isbn='',
+                        category='',
+                        rating='',
+                        read_status=read_status,
+                        review='',
+                        tags='',
+                        private_memo='',
+                        registered_date=registered_date,
+                        read_date=read_date
+                    )
+                    all_books_data.append(csv_data)
+
+                # 積読本を取得
+                stacked_books = (
+                    session.query(StackedBooks, BookDetail)
+                    .join(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+                    .all()
+                )
+                for stacked_book, detail in stacked_books:
+                    read_status = "積読"
+                    registered_date = ''
+
+                    csv_data = booklog_csv_data(
+                        service_id=1,
+                        item_id=detail.asin,
+                        isbn='',
+                        category='',
+                        rating='',
+                        read_status=read_status,
+                        review='',
+                        tags='',
+                        private_memo='',
+                        registered_date=registered_date,
+                        read_date=''  # 積読なので読了日なし
+                    )
+                    all_books_data.append(csv_data)
+
+                logger.info(f"合計 {len(all_books_data)} 件のデータをCSVに出力します。")
+
+                # 100件ごとに分割して出力
+                chunk_size = 100
+                for i in range(0, len(all_books_data), chunk_size):
+                    chunk = all_books_data[i:i + chunk_size]
+                    file_index = i // chunk_size
+                    filename = f"output_{file_index:05d}.csv"
+
+                    logger.info(f"{filename} を作成します。")
+
+                    with open("./csv/{}".format(filename), 'w', newline='', encoding='sjis', errors='replace') as f:
+                        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+                        for data in chunk:
+                            writer.writerow(data.to_list())
+
+                logger.info("CSVファイルの出力が完了しました。")
+
+        finally:
+            session.close()
+            logger.info("--- ブクログ形式CSV出力処理を終了します ---")
         
