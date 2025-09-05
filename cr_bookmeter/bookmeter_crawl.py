@@ -293,20 +293,15 @@ if __name__ == "__main__":
 
                 logger.info(f"合計 {len(all_books_data)} 件のデータをCSVに出力します。")
 
-                # 100件ごとに分割して出力
-                chunk_size = 100
-                for i in range(0, len(all_books_data), chunk_size):
-                    chunk = all_books_data[i:i + chunk_size]
-                    file_index = i // chunk_size
-                    filename = f"output_{file_index:05d}.csv"
+                # 1ファイルにまとめて出力
+                filename = "booklog.csv"
+                logger.info(f"{filename} を作成します。")
 
-                    logger.info(f"{filename} を作成します。")
-
-                    with open("./csv/{}".format(filename), 'w', newline='', encoding='sjis', errors='replace') as f:
-                        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-                        for data in chunk:
-                            writer.writerow(data.to_list())
-
+                with open("./csv/{}".format(filename), 'w', newline='', encoding='sjis', errors='replace') as f:
+                    writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+                    for data in all_books_data:
+                        writer.writerow(data.to_list())
+                        
                 logger.info("CSVファイルの出力が完了しました。")
 
         finally:
