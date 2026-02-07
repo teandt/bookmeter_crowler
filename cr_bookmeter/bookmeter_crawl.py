@@ -2,7 +2,7 @@ import argparse
 import logging
 import csv
 from contextlib import contextmanager
-from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
 from cr_bookmeter.spiders.bookmeter_read import BookmeterReadSpider
 from cr_bookmeter.spiders.bookmeter_stacked import BookmeterStackedSpider
@@ -18,7 +18,7 @@ from sqlite.bookmeter_db import (
 
 from csvdata import booklog_csv_data
 from sqlalchemy.orm import sessionmaker
-from twisted.internet.error import ReactorNotRestartable
+from twisted.internet import defer
 
 logger = logging.getLogger('bookmeter_crawl')
 
@@ -64,30 +64,25 @@ def get_urls_for_detail_crawl():
         urls.extend([book.url for book in stacked_books_no_detail])
         return sorted(list(set(urls)))
 
-def handle_crawling(process, args):
-    """クローリング関連の処理をハンドリングする"""
-    crawled_something = False
+@defer.inlineCallbacks
+def run_crawls(runner, args):
+    """クローリングを順次実行する"""
     if args.stacked:
-        logger.info("積読本リストの取得をキューに追加します。")
-        process.crawl(BookmeterStackedSpider)
-        crawled_something = True
+        logger.info("積読本リストの取得を開始します。")
+        yield runner.crawl(BookmeterStackedSpider)
 
     if args.read:
-        logger.info("読んだ本リストの取得をキューに追加します。")
-        process.crawl(BookmeterReadSpider)
-        crawled_something = True
+        logger.info("読んだ本リストの取得を開始します。")
+        yield runner.crawl(BookmeterReadSpider)
 
     if args.detail:
         logger.info("書籍詳細の取得準備を開始します。")
         urls_to_crawl = get_urls_for_detail_crawl()
         if urls_to_crawl:
-            logger.info(f"詳細未取得の書籍が {len(urls_to_crawl)} 件見つかりました。クロールをキューに追加します。")
-            process.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl)
-            crawled_something = True
+            logger.info(f"詳細未取得の書籍が {len(urls_to_crawl)} 件見つかりました。クロールを開始します。")
+            yield runner.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl)
         else:
             logger.info("DBに存在する書籍はすべて詳細取得済みです。")
-    
-    return crawled_something
 
 def handle_delete_details():
     """不要な書籍詳細データの削除処理"""
@@ -267,6 +262,7 @@ def main():
     parser.add_argument('-st', '--stacked', help='積読本リスト取得', action='store_true')
     parser.add_argument('-rd', '--read', help='読んだ本リスト取得', action='store_true')
     parser.add_argument('-dt', '--detail', help='書籍詳細の取得', action='store_true')
+    parser.add_argument('-all', '--all', help='積読本・読んだ本・書籍詳細をすべて取得', action='store_true')
     parser.add_argument('-ckst', '--checkstacked', help='DBのデータ確認（積読本）', action='store_true')
     parser.add_argument('-ckrd', '--checkread', help='DBのデータ確認（読んだ本）', action='store_true')
     parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細）', action='store_true')
@@ -274,26 +270,29 @@ def main():
     parser.add_argument('-csv', '--csv', help='CSV出力', action='store_true')
     args = parser.parse_args()
 
+    if args.all:
+        args.stacked = True
+        args.read = True
+        args.detail = True
+
     if not any(vars(args).values()):
         parser.error("少なくとも1つのオプションを指定してください。")
 
     initialize_database()
 
-    crawled_something = False
     if args.stacked or args.read or args.detail:
         settings = get_project_settings()
-        process = CrawlerProcess(settings, install_root_handler=False)
-        crawled_something = handle_crawling(process, args)
+        from scrapy.utils.reactor import install_reactor
+        install_reactor(settings.get("TWISTED_REACTOR"))
+        from twisted.internet import reactor
 
-    if crawled_something:
-        try:
-            logger.info("クローリング処理を開始します...")
-            process.start()
-            logger.info("クローリング処理が正常に完了しました。")
-        except ReactorNotRestartable:
-            logger.error("Reactorは再起動できません。スクリプトの構造を確認してください。")
-        except Exception as e:
-            logger.error(f"クローリング中に予期せぬエラーが発生しました: {e}", exc_info=True)
+        runner = CrawlerRunner(settings)
+        
+        logger.info("クローリング処理を開始します...")
+        d = run_crawls(runner, args)
+        d.addBoth(lambda _: reactor.stop())
+        reactor.run()
+        logger.info("クローリング処理が完了しました。")
 
     if args.deletedetail:
         handle_delete_details()
