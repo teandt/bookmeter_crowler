@@ -1,6 +1,7 @@
 import argparse
 import logging
 import csv
+import re
 from contextlib import contextmanager
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
@@ -280,8 +281,12 @@ def search_books(keywords, target='all'):
             print("該当する書籍は見つかりませんでした。")
             return
 
+        # 自然順ソート（数値が含まれるタイトルを正しく並べる）
+        def natural_keys(text):
+            return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', text)]
+
         # タイトルで降順ソート
-        results.sort(key=lambda x: x['title'], reverse=True)
+        results.sort(key=lambda x: natural_keys(x['title']), reverse=True)
 
         print(f"--- 検索結果：{len(results)}件 (対象: {target}) ---")
         for item in results:
