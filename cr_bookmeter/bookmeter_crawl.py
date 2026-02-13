@@ -282,8 +282,33 @@ def search_books(keywords, target='all'):
             return
 
         # 自然順ソート（数値が含まれるタイトルを正しく並べる）
+        def roman_to_int(s):
+            roman_values = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+            total = 0
+            prev_value = 0
+            for char in reversed(s):
+                value = roman_values.get(char, 0)
+                if value < prev_value:
+                    total -= value
+                else:
+                    total += value
+                prev_value = value
+            return total
+
         def natural_keys(text):
-            return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', text)]
+            # アラビア数字またはローマ数字（I, V, X）を数値として扱う
+            # ローマ数字は、行頭、非アルファベット、または'S'（Sシリーズ用）の後に続き、
+            # 行末、空白、括弧、または非アルファベットの前にあるものを対象とする
+            lookahead = r'(?=$|\s|\(|[^A-Za-z])'
+            roman = r'[IVX]+'
+            pattern = f'(\\d+|(?<=^){roman}{lookahead}|(?<=[^A-Za-z]){roman}{lookahead}|(?<=S){roman}{lookahead})'
+            
+            return [
+                int(c) if c.isdigit() else 
+                roman_to_int(c) if re.fullmatch(roman, c) else 
+                c 
+                for c in re.split(pattern, text) if c
+            ]
 
         # タイトルで降順ソート
         results.sort(key=lambda x: natural_keys(x['title']), reverse=True)
