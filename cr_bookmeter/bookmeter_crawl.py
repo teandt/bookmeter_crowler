@@ -67,7 +67,7 @@ def get_urls_for_detail_crawl():
         return sorted(list(set(urls)))
 
 @defer.inlineCallbacks
-def run_crawls(runner, args):
+def run_crawls(runner, args, urls_to_crawl):
     """クローリングを順次実行する"""
     if args.stacked:
         logger.info("積読本リストの取得を開始します。")
@@ -77,14 +77,11 @@ def run_crawls(runner, args):
         logger.info("読んだ本リストの取得を開始します。")
         yield runner.crawl(BookmeterReadSpider)
 
-    if args.detail:
+    if args.detail and urls_to_crawl:
         logger.info("書籍詳細の取得準備を開始します。")
-        urls_to_crawl = get_urls_for_detail_crawl()
-        if urls_to_crawl:
-            logger.info(f"詳細未取得の書籍が {len(urls_to_crawl)} 件見つかりました。クロールを開始します。")
-            yield runner.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl)
-        else:
-            logger.info("DBに存在する書籍はすべて詳細取得済みです。")
+        logger.info(f"詳細未取得の書籍が {len(urls_to_crawl)} 件見つかりました。クロールを開始します。")
+        yield runner.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl)
+
 
 def handle_delete_details():
     """不要な書籍詳細データの削除処理"""
@@ -363,7 +360,13 @@ def main():
 
     initialize_database()
 
-    if args.stacked or args.read or args.detail:
+    # クロールが必要かどうかを事前に判断する
+    urls_for_detail = []
+    if args.detail:
+        urls_for_detail = get_urls_for_detail_crawl()
+
+    # クロール処理が必要な場合のみ Scrapy と Twisted をセットアップ
+    if args.stacked or args.read or (args.detail and urls_for_detail):
         settings = get_project_settings()
         from scrapy.utils.reactor import install_reactor
         install_reactor(settings.get("TWISTED_REACTOR"))
@@ -372,10 +375,13 @@ def main():
         runner = CrawlerRunner(settings)
         
         logger.info("クローリング処理を開始します...")
-        d = run_crawls(runner, args)
+        d = run_crawls(runner, args, urls_for_detail)
         d.addBoth(lambda _: reactor.stop())
         reactor.run()
         logger.info("クローリング処理が完了しました。")
+    elif args.detail and not urls_for_detail:
+        # -dt のみ指定され、クロール対象がない場合のメッセージ
+        logger.info("DBに存在する書籍はすべて詳細取得済みです。")
 
     if args.deletedetail:
         handle_delete_details()
