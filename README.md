@@ -10,6 +10,8 @@
 -st: 「積読本」のリストをクロールして取得  
 -dt: 取得した「読んだ本」または「積読本」のリストにある本で、書籍詳細が取得されていない場合に取得  
 -csv: 「読んだ本」「積読本」のリストをもとにブクログ形式のCSVファイルを出力します。-dtですべての詳細データを取得している必要があります。  
+-s, --search: DBに登録された書籍をタイトルで部分一致検索します（AND条件）。
+-t, --target: 検索対象を指定します（all, read, stacked）。`--search` と同時に使用します。
 
 scrapyのSpider確認用にJSONファイル出力は残しています。  
 今のところレビュー記録や本棚登録状態を取得出来るようにするかは検討中。javascript対応が必要なので余裕があれば対応予定。（devブランチ側で試し中）
@@ -40,6 +42,12 @@ pip install -r requirements
 source venv/bin/activate
 cd cr_bookmeter
 python3 bookmeter_crawl.py [オプション]
+
+# 書籍を検索する例
+python3 bookmeter_crawl.py -s キーワード1 キーワード2
+
+# 読んだ本の中から検索する例
+python3 bookmeter_crawl.py -s キーワード -t read
 ```
 オプションはヘルプを見てください。一部DBの確認用にオプションを残しています。
 ```

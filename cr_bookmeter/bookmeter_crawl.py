@@ -18,6 +18,7 @@ from sqlite.bookmeter_db import (
 
 from csvdata import booklog_csv_data
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import and_
 from twisted.internet import defer
 
 logger = logging.getLogger('bookmeter_crawl')
@@ -245,6 +246,48 @@ def handle_csv_export():
         logger.info("CSVファイルの出力が完了しました。")
     logger.info("--- ブクログ形式CSV出力処理を終了します ---")
 
+def search_books(keywords, target='all'):
+    """指定されたキーワードで書籍を検索し、結果を表示する"""
+    logger.info(f"書籍検索を開始します。キーワード: {keywords}, 対象: {target}")
+    with session_scope() as session:
+        results = []
+
+        def get_query_results(model_class, label):
+            # BookDetailと結合してタイトル検索（AND条件）
+            query = session.query(model_class, BookDetail).join(BookDetail, model_class.book_id == BookDetail.book_id)
+            
+            conditions = [BookDetail.title.like(f'%{k}%') for k in keywords]
+            query = query.filter(and_(*conditions))
+            
+            rows = query.all()
+            data = []
+            for book, detail in rows:
+                data.append({
+                    'label': label,
+                    'title': detail.title,
+                    'author': book.authors,
+                    'date': getattr(book, 'date', None)
+                })
+            return data
+
+        if target in ['all', 'read']:
+            results.extend(get_query_results(ReadBooks, '読'))
+        
+        if target in ['all', 'stacked']:
+            results.extend(get_query_results(StackedBooks, '積'))
+
+        if not results:
+            print("該当する書籍は見つかりませんでした。")
+            return
+
+        # タイトルで降順ソート
+        results.sort(key=lambda x: x['title'], reverse=True)
+
+        print(f"--- 検索結果：{len(results)}件 (対象: {target}) ---")
+        for item in results:
+            date_str = f" ({item['date']})" if item['date'] else ""
+            print(f"[{item['label']}] {item['title']} / {item['author']}{date_str}")
+
 def main():
     """メイン処理"""
     # logのフォーマットはscrapyに合わせる形で指定しておく
@@ -268,6 +311,8 @@ def main():
     parser.add_argument('-ckd', '--checkdetail', help='DBのデータ確認（詳細）', action='store_true')
     parser.add_argument('-deldt', '--deletedetail', help='不要な書籍詳細データを削除', action='store_true')
     parser.add_argument('-csv', '--csv', help='CSV出力', action='store_true')
+    parser.add_argument('-s', '--search', nargs='+', metavar='KEYWORD', help='DBに登録された書籍をタイトルで部分一致検索します（AND条件）。複数キーワード指定可。')
+    parser.add_argument('-t', '--target', choices=['all', 'read', 'stacked'], default='all', help='検索対象を指定します（all: 両方, read: 読んだ本, stacked: 積読本）。--searchと同時に使用します。')
     args = parser.parse_args()
 
     if args.all:
@@ -275,7 +320,15 @@ def main():
         args.read = True
         args.detail = True
 
-    if not any(vars(args).values()):
+    # オプション指定チェック
+    # targetはデフォルト値があるため、チェック対象から除外するか、明示的にチェックする
+    has_option = (
+        args.stacked or args.read or args.detail or args.all or
+        args.checkstacked or args.checkread or args.checkdetail or
+        args.deletedetail or args.csv or args.search
+    )
+
+    if not has_option:
         parser.error("少なくとも1つのオプションを指定してください。")
 
     initialize_database()
@@ -302,6 +355,9 @@ def main():
 
     if args.csv:
         handle_csv_export()
+
+    if args.search:
+        search_books(args.search, args.target)
 
 if __name__ == "__main__":
     main()
