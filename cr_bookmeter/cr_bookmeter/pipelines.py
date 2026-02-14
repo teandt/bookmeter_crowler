@@ -5,12 +5,16 @@
 
 
 # useful for handling different item types with a single interface
+import logging
 from itemadapter import ItemAdapter
 from sqlalchemy.orm import sessionmaker
 from sqlite.bookmeter_db import engine, StackedBooks, ReadBooks, BookDetail
 
 
 class CrBookmeterPipeline:
+    def __init__(self):
+        logging.getLogger('sqlalchemy').propagate = False
+
     def open_spider(self, spider):
         """
         Spider開始時に呼び出される
