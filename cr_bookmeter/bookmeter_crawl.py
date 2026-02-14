@@ -264,7 +264,8 @@ def search_books(keywords, target='all'):
                     'label': label,
                     'title': detail.title,
                     'author': book.authors,
-                    'date': getattr(book, 'date', None)
+                    'date': getattr(book, 'date', None),
+                    'book_id': book.book_id
                 })
             return data
 
@@ -313,7 +314,8 @@ def search_books(keywords, target='all'):
         print(f"--- 検索結果：{len(results)}件 (対象: {target}) ---")
         for item in results:
             date_str = f" ({item['date']})" if item['date'] else ""
-            print(f"[{item['label']}] {item['title']} / {item['author']}{date_str}")
+            book_url = f"https://bookmeter.com/books/{item['book_id']}"
+            print(f"[{item['label']}] {item['title']} / {item['author']}{date_str} : {book_url}")
 
 def main():
     """メイン処理"""
