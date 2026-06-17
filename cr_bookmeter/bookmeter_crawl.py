@@ -367,8 +367,19 @@ def main():
 
     initialize_database()
 
-    # クロール処理が必要な場合（いずれかのフラグが立っている場合）
-    if args.stacked or args.read or args.detail:
+    # クロール処理が必要かどうかの判定
+    # 積読本(-st)または読んだ本(-rd)の取得が指定されている場合は、クローラーを起動する
+    # 詳細取得(-dt)のみが指定されている場合は、未取得のデータがある場合のみ起動する
+    should_run_reactor = False
+    if args.stacked or args.read:
+        should_run_reactor = True
+    elif args.detail:
+        if get_urls_for_detail_crawl():
+            should_run_reactor = True
+        else:
+            logger.info("DBに存在する書籍はすべて詳細取得済みです。")
+
+    if should_run_reactor:
         settings = get_project_settings()
         from scrapy.utils.reactor import install_reactor
         install_reactor(settings.get("TWISTED_REACTOR"))
