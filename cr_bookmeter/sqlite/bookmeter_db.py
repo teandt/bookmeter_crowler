@@ -1,7 +1,6 @@
 import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, Integer
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from pathlib import Path
 
 # このスクリプト(bookmeter_db.py)が存在するディレクトリを取得

@@ -19,7 +19,7 @@ from sqlite.bookmeter_db import (
 
 from csvdata import booklog_csv_data
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from twisted.internet import defer
 
 logger = logging.getLogger('bookmeter_crawl')
@@ -180,13 +180,36 @@ def handle_csv_export():
             .count()
         )
 
-        if missing_read_count > 0 or missing_stacked_count > 0:
-            logger.error("書籍詳細が取得できていない本があります。CSV出力はできません。")
+        missing_read_asin_count = (
+            session.query(ReadBooks)
+            .join(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+            .filter(or_(BookDetail.asin.is_(None), BookDetail.asin == ''))
+            .count()
+        )
+        missing_stacked_asin_count = (
+            session.query(StackedBooks)
+            .join(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+            .filter(or_(BookDetail.asin.is_(None), BookDetail.asin == ''))
+            .count()
+        )
+
+        if any((
+            missing_read_count,
+            missing_stacked_count,
+            missing_read_asin_count,
+            missing_stacked_asin_count,
+        )):
+            logger.error("CSV出力に必要な書籍情報が不足しています。CSV出力はできません。")
             if missing_read_count > 0:
                 logger.error(f"読んだ本リストで {missing_read_count} 件の詳細がありません。")
             if missing_stacked_count > 0:
                 logger.error(f"積読本リストで {missing_stacked_count} 件の詳細がありません。")
-            logger.error("-dt オプションを指定して書籍詳細を取得してください。")
+            if missing_read_asin_count > 0:
+                logger.error(f"読んだ本リストで {missing_read_asin_count} 件のASINがありません。")
+            if missing_stacked_asin_count > 0:
+                logger.error(f"積読本リストで {missing_stacked_asin_count} 件のASINがありません。")
+            if missing_read_count > 0 or missing_stacked_count > 0:
+                logger.error("-dt オプションを指定して書籍詳細を取得してください。")
             return
 
         logger.info("すべての書籍詳細データが揃っています。CSVデータの作成を開始します。")
