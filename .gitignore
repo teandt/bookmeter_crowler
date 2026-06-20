@@ -7,3 +7,5 @@ venv
 *.db
 *.txt
 *.log
+test/testdata
+.pytest_cache

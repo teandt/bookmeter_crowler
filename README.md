@@ -33,6 +33,7 @@ scrapyのSpider確認用にJSONファイル出力は残しています。
 - scrapy
 - python-dotenv
 - SQLAlchemy
+- pytest
   
 pip freezeしているので  
 ```
