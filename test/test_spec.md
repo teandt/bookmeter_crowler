@@ -17,7 +17,7 @@ bookmeter_crawl.pyと同様にvenvの仮想環境化で実行すること。
 本番DB `cr_bookmeter/sqlite/bookmeter.db` はテストで直接使用しない。  
 pytest fixtureで一時SQLite DBを作成し、`bookmeter_crawl.Session` をmonkeypatchして、テストDBだけを操作する。
 
-## 推奨ファイル構成
+## ファイル構成
 
 ```text
 test/
