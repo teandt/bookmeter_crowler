@@ -141,18 +141,6 @@ CLI引数による分岐を最小限に検証する。
 `main()` はTwisted reactorを起動する可能性があるため、厚くテストしすぎない。  
 `initialize_database()`, `run_crawls()`, `handle_*()`, `search_books()`, `CrawlerRunner`, `reactor` などはmonkeypatchして、分岐だけを確認する。
 
-## 優先順位
-
-まず以下の順で作成する。
-
-1. `test_spiders_from_testdata.py`
-2. `test_bookmeter_crawl_db.py`
-3. `test_bookmeter_crawl_export_search.py`
-4. `test_bookmeter_crawl_runner.py`
-5. `test_bookmeter_crawl_cli.py`
-
-最初にSpider解析とDBロジックを固める。  
-この2つが、読書メーターのHTML変更検知と、アプリの主要データ処理の保護に直結するためである。
 
 ## テスト実行方針
 
