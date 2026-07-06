@@ -17,7 +17,7 @@ bookmeter_crawl.pyと同様にvenvの仮想環境化で実行すること。
 本番DB `cr_bookmeter/sqlite/bookmeter.db` はテストで直接使用しない。  
 pytest fixtureで一時SQLite DBを作成し、`bookmeter_crawl.Session` をmonkeypatchして、テストDBだけを操作する。
 
-## 推奨ファイル構成
+## ファイル構成
 
 ```text
 test/
@@ -141,18 +141,6 @@ CLI引数による分岐を最小限に検証する。
 `main()` はTwisted reactorを起動する可能性があるため、厚くテストしすぎない。  
 `initialize_database()`, `run_crawls()`, `handle_*()`, `search_books()`, `CrawlerRunner`, `reactor` などはmonkeypatchして、分岐だけを確認する。
 
-## 優先順位
-
-まず以下の順で作成する。
-
-1. `test_spiders_from_testdata.py`
-2. `test_bookmeter_crawl_db.py`
-3. `test_bookmeter_crawl_export_search.py`
-4. `test_bookmeter_crawl_runner.py`
-5. `test_bookmeter_crawl_cli.py`
-
-最初にSpider解析とDBロジックを固める。  
-この2つが、読書メーターのHTML変更検知と、アプリの主要データ処理の保護に直結するためである。
 
 ## テスト実行方針
 
@@ -162,12 +150,18 @@ CLI引数による分岐を最小限に検証する。
 venv/bin/pytest test
 ```
 
-`pytest.ini` の設定により、通常実行では `slow` マーカー付きテストを除外する。
+通常実行では `slow` マーカー付きテストも含めて実行する。
 
 全HTMLを使う重いテストのみを実行する場合:
 
 ```bash
 venv/bin/pytest test -m slow
+```
+
+重いテストを除外して実行する場合:
+
+```bash
+venv/bin/pytest test -m "not slow"
 ```
 
 完了時には、読了・積読・詳細ごとに確認したHTML件数と解析したアイテム件数を表示する。

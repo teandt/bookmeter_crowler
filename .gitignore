@@ -9,3 +9,4 @@ venv
 *.log
 test/testdata
 .pytest_cache
+task
