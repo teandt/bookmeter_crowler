@@ -150,12 +150,18 @@ CLI引数による分岐を最小限に検証する。
 venv/bin/pytest test
 ```
 
-`pytest.ini` の設定により、通常実行では `slow` マーカー付きテストを除外する。
+通常実行では `slow` マーカー付きテストも含めて実行する。
 
 全HTMLを使う重いテストのみを実行する場合:
 
 ```bash
 venv/bin/pytest test -m slow
+```
+
+重いテストを除外して実行する場合:
+
+```bash
+venv/bin/pytest test -m "not slow"
 ```
 
 完了時には、読了・積読・詳細ごとに確認したHTML件数と解析したアイテム件数を表示する。
