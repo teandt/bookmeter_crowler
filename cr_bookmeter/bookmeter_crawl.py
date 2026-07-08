@@ -180,45 +180,48 @@ def handle_csv_export():
             .count()
         )
 
-        missing_read_asin_count = (
-            session.query(ReadBooks)
+        asin_missing_condition = or_(BookDetail.asin.is_(None), BookDetail.asin == '')
+        asin_exists_condition = and_(BookDetail.asin.isnot(None), BookDetail.asin != '')
+
+        read_books_without_asin = (
+            session.query(ReadBooks, BookDetail)
             .join(BookDetail, ReadBooks.book_id == BookDetail.book_id)
-            .filter(or_(BookDetail.asin.is_(None), BookDetail.asin == ''))
-            .count()
+            .filter(asin_missing_condition)
+            .all()
         )
-        missing_stacked_asin_count = (
-            session.query(StackedBooks)
+        stacked_books_without_asin = (
+            session.query(StackedBooks, BookDetail)
             .join(BookDetail, StackedBooks.book_id == BookDetail.book_id)
-            .filter(or_(BookDetail.asin.is_(None), BookDetail.asin == ''))
-            .count()
+            .filter(asin_missing_condition)
+            .all()
         )
 
-        if any((
-            missing_read_count,
-            missing_stacked_count,
-            missing_read_asin_count,
-            missing_stacked_asin_count,
-        )):
+        if missing_read_count or missing_stacked_count:
             logger.error("CSV出力に必要な書籍情報が不足しています。CSV出力はできません。")
             if missing_read_count > 0:
                 logger.error(f"読んだ本リストで {missing_read_count} 件の詳細がありません。")
             if missing_stacked_count > 0:
                 logger.error(f"積読本リストで {missing_stacked_count} 件の詳細がありません。")
-            if missing_read_asin_count > 0:
-                logger.error(f"読んだ本リストで {missing_read_asin_count} 件のASINがありません。")
-            if missing_stacked_asin_count > 0:
-                logger.error(f"積読本リストで {missing_stacked_asin_count} 件のASINがありません。")
-            if missing_read_count > 0 or missing_stacked_count > 0:
-                logger.error("-dt オプションを指定して書籍詳細を取得してください。")
+            logger.error("-dt オプションを指定して書籍詳細を取得してください。")
             return
 
-        logger.info("すべての書籍詳細データが揃っています。CSVデータの作成を開始します。")
+        if read_books_without_asin:
+            logger.warning(f"読んだ本リストで {len(read_books_without_asin)} 件のASINがない書籍をCSV出力から除外します。")
+            for read_book, detail in read_books_without_asin:
+                logger.warning(f"  - 除外対象: {detail.title} (ID: {read_book.book_id})")
+        if stacked_books_without_asin:
+            logger.warning(f"積読本リストで {len(stacked_books_without_asin)} 件のASINがない書籍をCSV出力から除外します。")
+            for stacked_book, detail in stacked_books_without_asin:
+                logger.warning(f"  - 除外対象: {detail.title} (ID: {stacked_book.book_id})")
+
+        logger.info("CSV出力に必要な書籍詳細データが揃っています。CSVデータの作成を開始します。")
         all_books_data = []
 
         # 読んだ本を取得
         read_books = (
             session.query(ReadBooks, BookDetail)
             .join(BookDetail, ReadBooks.book_id == BookDetail.book_id)
+            .filter(asin_exists_condition)
             .all()
         )
         for read_book, detail in read_books:
@@ -241,6 +244,7 @@ def handle_csv_export():
         stacked_books = (
             session.query(StackedBooks, BookDetail)
             .join(BookDetail, StackedBooks.book_id == BookDetail.book_id)
+            .filter(asin_exists_condition)
             .all()
         )
         for stacked_book, detail in stacked_books:

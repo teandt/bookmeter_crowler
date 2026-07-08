@@ -95,7 +95,7 @@ def test_handle_csv_export_does_not_write_csv_when_detail_is_missing(db_session_
     assert not (csv_workdir / "csv" / "booklog.csv").exists()
 
 
-def test_handle_csv_export_does_not_write_csv_when_asin_is_missing(
+def test_handle_csv_export_writes_empty_csv_when_asin_is_missing(
     db_session_factory, csv_workdir, add_books, caplog
 ):
     session = db_session_factory()
@@ -134,13 +134,98 @@ def test_handle_csv_export_does_not_write_csv_when_asin_is_missing(
     )
     session.close()
 
-    with caplog.at_level(logging.ERROR, logger="bookmeter_crawl"):
+    with caplog.at_level(logging.WARNING, logger="bookmeter_crawl"):
         bookmeter_crawl.handle_csv_export()
 
-    assert not (csv_workdir / "csv" / "booklog.csv").exists()
+    csv_path = csv_workdir / "csv" / "booklog.csv"
+    assert csv_path.exists()
+    assert read_booklog_csv(csv_path) == []
     messages = [record.getMessage() for record in caplog.records]
-    assert "読んだ本リストで 1 件のASINがありません。" in messages
-    assert "積読本リストで 1 件のASINがありません。" in messages
+    assert "読んだ本リストで 1 件のASINがない書籍をCSV出力から除外します。" in messages
+    assert "  - 除外対象: Read detail (ID: read-without-asin)" in messages
+    assert "積読本リストで 1 件のASINがない書籍をCSV出力から除外します。" in messages
+    assert "  - 除外対象: Stacked detail (ID: stacked-without-asin)" in messages
+
+
+def test_handle_csv_export_excludes_books_without_asin(
+    db_session_factory, csv_workdir, add_books, caplog
+):
+    session = db_session_factory()
+    add_books(
+        session,
+        [
+            (
+                bookmeter_crawl.ReadBooks,
+                {
+                    "book_id": "read-with-asin",
+                    "title": "Read with ASIN",
+                    "authors": "Author A",
+                    "date": "2026/01/01",
+                    "url": "https://bookmeter.com/books/read-with-asin",
+                },
+            ),
+            (
+                bookmeter_crawl.ReadBooks,
+                {
+                    "book_id": "read-without-asin",
+                    "title": "Read without ASIN",
+                    "authors": "Author B",
+                    "date": "2026/01/02",
+                    "url": "https://bookmeter.com/books/read-without-asin",
+                },
+            ),
+            (
+                bookmeter_crawl.StackedBooks,
+                {
+                    "book_id": "stacked-with-asin",
+                    "title": "Stacked with ASIN",
+                    "authors": "Author C",
+                    "date": None,
+                    "url": "https://bookmeter.com/books/stacked-with-asin",
+                },
+            ),
+            (
+                bookmeter_crawl.StackedBooks,
+                {
+                    "book_id": "stacked-without-asin",
+                    "title": "Stacked without ASIN",
+                    "authors": "Author D",
+                    "date": None,
+                    "url": "https://bookmeter.com/books/stacked-without-asin",
+                },
+            ),
+            (
+                bookmeter_crawl.BookDetail,
+                {"book_id": "read-with-asin", "title": "Read detail with ASIN", "asin": "1111111111"},
+            ),
+            (
+                bookmeter_crawl.BookDetail,
+                {"book_id": "read-without-asin", "title": "Read detail without ASIN", "asin": None},
+            ),
+            (
+                bookmeter_crawl.BookDetail,
+                {"book_id": "stacked-with-asin", "title": "Stacked detail with ASIN", "asin": "2222222222"},
+            ),
+            (
+                bookmeter_crawl.BookDetail,
+                {"book_id": "stacked-without-asin", "title": "Stacked detail without ASIN", "asin": ""},
+            ),
+        ],
+    )
+    session.close()
+
+    with caplog.at_level(logging.WARNING, logger="bookmeter_crawl"):
+        bookmeter_crawl.handle_csv_export()
+
+    rows = read_booklog_csv(csv_workdir / "csv" / "booklog.csv")
+
+    assert rows == [
+        ["1", "1111111111", "", "", "", "読み終わった", "", "", "", "", "2026/01/01"],
+        ["1", "2222222222", "", "", "", "積読", "", "", "", "", ""],
+    ]
+    messages = [record.getMessage() for record in caplog.records]
+    assert "読んだ本リストで 1 件のASINがない書籍をCSV出力から除外します。" in messages
+    assert "積読本リストで 1 件のASINがない書籍をCSV出力から除外します。" in messages
 
 
 def test_handle_csv_export_writes_empty_csv_when_database_is_empty(
