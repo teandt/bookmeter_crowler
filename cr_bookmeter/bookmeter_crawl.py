@@ -64,7 +64,7 @@ def get_urls_for_detail_crawl():
         )
         urls = [book.url for book in read_books_no_detail]
         urls.extend([book.url for book in stacked_books_no_detail])
-        return sorted(list(set(urls)))
+        return sorted(set(urls))
 
 @defer.inlineCallbacks
 def run_crawls(runner, args):
