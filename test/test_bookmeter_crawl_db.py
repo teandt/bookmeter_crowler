@@ -264,7 +264,7 @@ def test_handle_db_checks_reports_empty_tables(db_session_factory, capsys, caplo
 
 
 def test_session_scope_rolls_back_when_exception_is_raised(db_session_factory):
-    with pytest.raises(RuntimeError):
+    def raise_inside_session_scope():
         with bookmeter_crawl.session_scope() as session:
             session.add(
                 bookmeter_crawl.ReadBooks(
@@ -276,6 +276,9 @@ def test_session_scope_rolls_back_when_exception_is_raised(db_session_factory):
                 )
             )
             raise RuntimeError("force rollback")
+
+    with pytest.raises(RuntimeError, match="force rollback"):
+        raise_inside_session_scope()
 
     session = db_session_factory()
     assert session.query(bookmeter_crawl.ReadBooks).count() == 0
