@@ -23,6 +23,8 @@ jobs:
           cache-dependency-path: requirements
       - name: Install dependencies
         run: python -m pip install -r requirements
+      - name: Prepare test environment
+        run: cp cr_bookmeter/env/.env.example cr_bookmeter/env/.env
       - name: Run tests and generate coverage report
         run: python -m pytest test --cov=cr_bookmeter --cov-report=xml:coverage.xml
       - name: SonarQube Scan
