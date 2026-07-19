@@ -36,16 +36,16 @@ scrapyのSpider確認用にJSONファイル出力は残しています。
 - SQLAlchemy
 - pytest
   
-pip freezeしているので  
+依存関係の入力ファイルは `requirements.in`、CI と通常のインストールにはハッシュ付きの `requirements.lock` を使用します。
 ```
-pip install -r requirements
+pip install --require-hashes -r requirements.lock
 ```
 でインストールしてください。  
 依存関係で色々インストールされるためvenvを推奨します。  
 ```
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements
+pip install --require-hashes -r requirements.lock
 ```
 
 # 設定

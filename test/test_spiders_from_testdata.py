@@ -8,6 +8,9 @@ from cr_bookmeter.spiders.bookmeter_bookdetail import BookmeterBookDetailSpider
 from cr_bookmeter.spiders.bookmeter_read import BookmeterReadSpider
 from cr_bookmeter.spiders.bookmeter_stacked import BookmeterStackedSpider
 
+# 保存済み HTML テストデータは GitHub Actions に含めないため、CI では除外する。
+pytestmark = pytest.mark.slow
+
 
 def split_parse_results(results):
     items = []
