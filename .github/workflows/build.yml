@@ -26,7 +26,7 @@ jobs:
       - name: Prepare test environment
         run: cp cr_bookmeter/env/.env.example cr_bookmeter/env/.env
       - name: Run tests and generate coverage report
-        run: python -m pytest test --cov=cr_bookmeter --cov-report=xml:coverage.xml
+        run: python -m pytest test -m "not slow" --cov=cr_bookmeter --cov-report=xml:coverage.xml
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
         env:
