@@ -6,7 +6,7 @@
 
 ## 前提
 
-- Python の仮想環境を作成し、`requirements` の依存パッケージをインストールしておきます。
+- Python の仮想環境を作成し、`requirements.lock` の依存パッケージをインストールしておきます。
 - 読書メーターのユーザーIDを `cr_bookmeter/env/.env` に設定しておきます。
 
 依存パッケージの準備例:
@@ -14,7 +14,7 @@
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements
+pip install --require-hashes -r requirements.lock
 ```
 
 設定ファイルは `cr_bookmeter/env/.env.example` を参考にして、`cr_bookmeter/env/.env` を作成してください。

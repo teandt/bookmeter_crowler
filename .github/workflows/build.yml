@@ -20,9 +20,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements
+          cache-dependency-path: requirements.lock
       - name: Install dependencies
-        run: python -m pip install -r requirements
+        run: python -m pip install --require-hashes -r requirements.lock
       - name: Prepare test environment
         run: cp cr_bookmeter/env/.env.example cr_bookmeter/env/.env
       - name: Run tests and generate coverage report
