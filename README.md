@@ -48,6 +48,12 @@ source venv/bin/activate
 pip install --require-hashes -r requirements.lock
 ```
 
+依存パッケージを追加・更新する場合は、`requirements.in` を編集した後、`pip-compile` でハッシュ付きの `requirements.lock` を生成・更新します。
+
+```
+pip-compile --generate-hashes --output-file=requirements.lock requirements.in
+```
+
 # 設定
 読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env にUSER_ID="0000"を自分のユーザIDに変更して実行します。  
 .env.exampleファイルを参考に作成してください。
