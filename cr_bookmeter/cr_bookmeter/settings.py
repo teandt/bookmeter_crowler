@@ -25,7 +25,7 @@ ROBOTSTXT_OBEY = True
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
-DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 1
 
 # Download retry settings
 RETRY_ENABLED = True
