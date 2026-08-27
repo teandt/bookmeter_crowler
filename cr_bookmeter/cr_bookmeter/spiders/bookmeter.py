@@ -10,7 +10,6 @@ class BookmeterSpider(scrapy.Spider):
         **os.environ,
     }
 
-    env = dotenv_values("./env/.env")
     name = "bookmeter"
     allowed_domains = ["bookmeter.com"]
     start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/read"]

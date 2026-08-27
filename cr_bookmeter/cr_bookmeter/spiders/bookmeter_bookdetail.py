@@ -10,7 +10,6 @@ class BookmeterBookDetailSpider(scrapy.Spider):
         **os.environ,
     }
 
-    env = dotenv_values("./env/.env")
     name = "bookmeter_bookdetail"
     allowed_domains = ["bookmeter.com"]
     custom_settings = {

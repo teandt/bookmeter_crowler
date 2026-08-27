@@ -9,7 +9,6 @@ class BookmeterStackedSpider(scrapy.Spider):
         **os.environ,
     }
 
-    env = dotenv_values("./env/.env")
     name = "bookmeter_stacked"
     allowed_domains = ["bookmeter.com"]
     start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
