@@ -1,8 +1,14 @@
 import scrapy
+import os
 from dotenv import dotenv_values
 from cr_bookmeter.items import CrBookmeterItem
 
 class BookmeterStackedSpider(scrapy.Spider):
+    env = {
+        **dotenv_values("./env/.env"),
+        **os.environ,
+    }
+
     env = dotenv_values("./env/.env")
     name = "bookmeter_stacked"
     allowed_domains = ["bookmeter.com"]
