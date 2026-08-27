@@ -5,9 +5,14 @@ import sys
 import time
 from pathlib import Path
 from urllib.parse import urljoin
-from dotenv import dotenv_values
 import requests
 from parsel import Selector
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+CRAWLER_ROOT = SCRIPT_DIR.parent / "cr_bookmeter"
+sys.path.insert(0, str(CRAWLER_ROOT))
+
+from cr_bookmeter.config import get_user_id
 
 logger = logging.getLogger("get_testdata")
 
@@ -15,9 +20,8 @@ logger = logging.getLogger("get_testdata")
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 
 # パス定義
-SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "testdata" / "page"
-ENV_FILE = SCRIPT_DIR.parent / "cr_bookmeter" / "env" / ".env"
+ENV_FILE = CRAWLER_ROOT / "env" / ".env"
 URL_MAP_FILE = SCRIPT_DIR / "testdata" / "url_map.json"
 
 # URLとローカルファイルの対応マップ
@@ -38,16 +42,11 @@ def setup_logging():
     )
 
 def load_user_id():
-    if not ENV_FILE.exists():
-        logger.error(f".envファイルが見つかりません: {ENV_FILE}")
+    try:
+        return get_user_id(ENV_FILE)
+    except ValueError as error:
+        logger.error(error)
         sys.exit(1)
-    
-    env = dotenv_values(ENV_FILE)
-    user_id = env.get("USER_ID")
-    if not user_id:
-        logger.error("USER_ID が .env ファイルに定義されていません。")
-        sys.exit(1)
-    return user_id
 
 def get_page_content(url, delay, force, cache_path, max_retries=3, retry_delay=10):
     """

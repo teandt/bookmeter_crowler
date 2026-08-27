@@ -1,15 +1,8 @@
 import scrapy
-import os
 import re
-from dotenv import dotenv_values
 from cr_bookmeter.items import CrBookmeterDetailItem
 
 class BookmeterBookDetailSpider(scrapy.Spider):
-    env = {
-        **dotenv_values("./env/.env"),
-        **os.environ,
-    }
-
     name = "bookmeter_bookdetail"
     allowed_domains = ["bookmeter.com"]
     custom_settings = {
