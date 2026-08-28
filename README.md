@@ -55,8 +55,14 @@ pip-compile --generate-hashes --output-file=requirements.lock requirements.in
 ```
 
 # 設定
-読書メーターのユーザーIDを指定しておく必要があるので、cd_bookmeter/env/.env にUSER_ID="0000"を自分のユーザIDに変更して実行します。  
-.env.exampleファイルを参考に作成してください。
+読書メーターのユーザーIDは、環境変数 `USER_ID` または `cr_bookmeter/env/.env` で指定します。両方に指定した場合は環境変数が優先されます。
+`.env` を使用する場合は `.env.example` ファイルを参考に作成してください。
+
+環境変数で指定する例:
+
+```
+USER_ID="0000" python3 bookmeter_crawl.py -rd
+```
 
 # 実行方法
 ```

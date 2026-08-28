@@ -8,7 +8,7 @@ pythonのライブラリ等の実行環境はvenvで作成した仮想環境で�
 
 ## テストデータ取得
 
-`test/get_testdata.py` を実行して、`.env`（`cr_bookmeter/env/.env`）に記載されている `USER_ID` のページをクロールし、テスト用の HTML データを取得します。
+`test/get_testdata.py` を実行して、環境変数 `USER_ID` または `.env`（`cr_bookmeter/env/.env`）で指定したユーザーのページをクロールし、テスト用の HTML データを取得します。両方に指定した場合は環境変数が優先されます。
 
 ### 出力ディレクトリ構成
 取得したデータは `./test/testdata/` 以下に分類して保存されます。

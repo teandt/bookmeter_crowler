@@ -1,14 +1,13 @@
 import scrapy
 import re
-from dotenv import dotenv_values
+from cr_bookmeter.config import get_user_id
 from cr_bookmeter.items import CrBookmeterItem
 
 class BookmeterSpider(scrapy.Spider):
-    env = dotenv_values("./env/.env")
     name = "bookmeter"
     allowed_domains = ["bookmeter.com"]
-    start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/read"]
-    #start_urls = ["https://bookmeter.com/users/{}".format(env["USER_ID"])+"/books/stacked"]
+    start_urls = [f"https://bookmeter.com/users/{get_user_id()}/books/read"]
+    #start_urls = [f"https://bookmeter.com/users/{get_user_id()}/books/stacked"]
 
     def detail_parse(self, response):
         '''
