@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 import csv
 import re
 from contextlib import contextmanager
@@ -40,11 +41,13 @@ def session_scope():
         session.close()
 
 def initialize_database():
-    """DBファイルが存在しない場合は作成する"""
+    """DBファイル・テーブルが存在しない場合は作成する"""
     if not _db_path.exists():
         logger.info(f"データベースファイルが見つかりません。新しいファイルを作成します: {_db_path}")
-        Base.metadata.create_all(engine)
-        logger.info("データベースとテーブルを作成しました。")
+    # create_all は不足しているテーブルだけを追加する（既存テーブルには影響しない）。
+    # DBファイルがあっても新テーブル（ステージング等）が無い場合に備えて常に実行する。
+    Base.metadata.create_all(engine)
+    logger.info("データベースとテーブルの準備ができました。")
 
 def get_urls_for_detail_crawl():
     """書籍詳細をクロールするためのURLリストを取得する"""
@@ -66,16 +69,77 @@ def get_urls_for_detail_crawl():
         urls.extend([book.url for book in stacked_books_no_detail])
         return sorted(set(urls))
 
+
+# クロール結果（spider ごとの stats 集計）。終了ステータス判定に使う
+CRAWL_RESULTS = []
+
+def _record_crawl_result(spider_name, stats):
+    """クロール完了後の stats から結果を取り出して記録する"""
+    result = {
+        "spider": spider_name,
+        "finish_reason": None,
+        "items": 0,
+        "swap_applied": None,
+    }
+    try:
+        if stats:
+            result["finish_reason"] = stats.get("finish_reason")
+            result["items"] = stats.get("item_scraped_count", 0)
+            result["swap_applied"] = stats.get("pipeline/swap_applied")
+    except Exception:
+        logger.exception("クロール結果の取得に失敗しました")
+    CRAWL_RESULTS.append(result)
+    return result
+
+@defer.inlineCallbacks
+def _run_one_crawl(runner, spider_cls, **kwargs):
+    """1つのスパイダーを実行し、完了後に stats を結果として記録する。
+
+    CrawlerRunner は完了した crawler を runner.crawlers から取り除くため、
+    create_crawler で crawler を先に作って参照を保持し、その stats を読む。
+    create_crawler を持たない runner（テスト用フェイク等）では従来どおり
+    クラスを渡して実行し、stats は取得できないものとして記録する。
+    """
+    create_crawler = getattr(runner, "create_crawler", None)
+    if callable(create_crawler):
+        crawler = create_crawler(spider_cls)
+        yield runner.crawl(crawler, **kwargs)
+        _record_crawl_result(spider_cls.name, crawler.stats.get_stats())
+    else:
+        yield runner.crawl(spider_cls, **kwargs)
+        _record_crawl_result(spider_cls.name, None)
+
+def evaluate_crawl_results(results):
+    """クロール結果から (成功可否, サマリ行リスト) を返す"""
+    lines = []
+    ok = True
+    for r in results:
+        spider_ok = (
+            r.get("finish_reason") == "finished"
+            and r.get("swap_applied") is not False
+        )
+        ok = ok and spider_ok
+        if r.get("swap_applied") is None:
+            swap_str = "-"
+        else:
+            swap_str = "applied" if r["swap_applied"] else "kept"
+        lines.append(
+            f"[crawl-summary] spider={r.get('spider')} items={r.get('items', 0)} "
+            f"finish_reason={r.get('finish_reason')} swap={swap_str} "
+            f"result={'OK' if spider_ok else 'FAILED'}"
+        )
+    return ok, lines
+
 @defer.inlineCallbacks
 def run_crawls(runner, args):
     """クローリングを順次実行する"""
     if args.stacked:
         logger.info("積読本リストの取得を開始します。")
-        yield runner.crawl(BookmeterStackedSpider)
+        yield _run_one_crawl(runner, BookmeterStackedSpider)
 
     if args.read:
         logger.info("読んだ本リストの取得を開始します。")
-        yield runner.crawl(BookmeterReadSpider)
+        yield _run_one_crawl(runner, BookmeterReadSpider)
 
     if args.detail:
         # 積読・読了リストの更新が終わった後の最新状態で、詳細未取得のURLを再取得する
@@ -83,7 +147,7 @@ def run_crawls(runner, args):
         if urls_to_crawl:
             logger.info("書籍詳細の取得準備を開始します。")
             logger.info(f"詳細未取得の書籍が {len(urls_to_crawl)} 件見つかりました。クロールを開始します。")
-            yield runner.crawl(BookmeterBookDetailSpider, target_urls=urls_to_crawl)
+            yield _run_one_crawl(runner, BookmeterBookDetailSpider, target_urls=urls_to_crawl)
         else:
             logger.info("DBに存在する書籍はすべて詳細取得済みです。")
 
@@ -351,6 +415,7 @@ def search_books(keywords, target='all'):
 
 def main():
     """メイン処理"""
+    CRAWL_RESULTS.clear()
     # logのフォーマットはscrapyに合わせる形で指定しておく
     logging.basicConfig(
         level=logging.INFO,
@@ -398,6 +463,7 @@ def main():
     # 積読本(-st)または読んだ本(-rd)の取得が指定されている場合は、クローラーを起動する
     # 詳細取得(-dt)のみが指定されている場合は、未取得のデータがある場合のみ起動する
     should_run_reactor = False
+    crawl_ok = True
     if args.stacked or args.read:
         should_run_reactor = True
     elif args.detail:
@@ -420,6 +486,13 @@ def main():
         reactor.run()
         logger.info("クローリング処理が完了しました。")
 
+        crawl_ok, summary_lines = evaluate_crawl_results(CRAWL_RESULTS)
+        for line in summary_lines:
+            logger.info(line)
+            print(line)
+        if not crawl_ok:
+            logger.error("一部のクロールが正常に完了しませんでした。")
+
     if args.deletedetail:
         handle_delete_details()
 
@@ -432,6 +505,11 @@ def main():
     if args.search:
         search_books(args.search, args.target)
 
+    # クロールを実行した場合は、その成否を終了コードに反映する
+    if should_run_reactor and not crawl_ok:
+        return 1
+    return 0
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
         

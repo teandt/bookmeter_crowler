@@ -83,6 +83,24 @@ class BookDetail(Base):
     def __repr__(self):
         return f"<BookDetail(book_id='{self.book_id}', title='{self.title}', pages='{self.pages}', amazon_url='{self.amazon_url}', asin='{self.asin}')>"
 
+# リスト取得用ステージング（本テーブルへの反映はクロール成功時にのみ行う）
+class ReadBooksStaging(BookListMixin, Base):
+    __tablename__ = 'read_books_staging'
+    num = Column(Integer, primary_key=True, autoincrement=True)
+    book_id = Column(String)
+
+    def __repr__(self):
+        return f"<ReadBooksStaging(num='{self.num}', book_id='{self.book_id}', title='{self.title}', authors='{self.authors}', date='{self.date}', url='{self.url}')>"
+
+# 積読本リスト用ステージング
+class StackedBooksStaging(BookListMixin, Base):
+    __tablename__ = 'stacked_books_staging'
+    num = Column(Integer, primary_key=True, autoincrement=True)
+    book_id = Column(String)
+
+    def __repr__(self):
+        return f"<StackedBooksStaging(num='{self.num}', book_id='{self.book_id}', title='{self.title}', authors='{self.authors}', date='{self.date}', url='{self.url}')>"
+
 if __name__ == '__main__':
     # テーブルを作成
     Base.metadata.create_all(engine)
