@@ -302,7 +302,7 @@ def test_initialize_database_creates_missing_database_file(tmp_path, monkeypatch
 
 
 
-def test_initialize_database_does_not_recreate_existing_database(
+def test_initialize_database_ensures_tables_even_when_database_exists(
     tmp_path, monkeypatch
 ):
     db_path = tmp_path / "existing.db"
@@ -318,5 +318,8 @@ def test_initialize_database_does_not_recreate_existing_database(
 
     bookmeter_crawl.initialize_database()
 
-    assert create_all_calls == []
+    # 既存DBでも、不足しているテーブル（ステージング等）を追加するため
+    # create_all は必ず呼ばれる
+    assert len(create_all_calls) == 1
+    # DBファイル自体を作り直したり削除したりはしない
     assert db_path.read_bytes() == original_content
