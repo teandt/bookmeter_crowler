@@ -303,16 +303,22 @@ def search_books(keywords, target):
         results = []
 
         def get_query_results(model_class, label):
-            query = session.query(model_class, bookmeter_crawl.BookDetail).join(
+            query = session.query(model_class, bookmeter_crawl.BookDetail).outerjoin(
                 bookmeter_crawl.BookDetail,
                 model_class.book_id == bookmeter_crawl.BookDetail.book_id,
             )
-            conditions = [bookmeter_crawl.BookDetail.title.like(f"%{keyword}%") for keyword in keywords]
+            conditions = [
+                or_(
+                    bookmeter_crawl.BookDetail.title.like(f"%{keyword}%"),
+                    model_class.title.like(f"%{keyword}%"),
+                )
+                for keyword in keywords
+            ]
             rows = query.filter(and_(*conditions)).all()
             return [
                 {
                     "label": label,
-                    "title": row_value(detail.title),
+                    "title": row_value(detail.title) if detail is not None else row_value(book.title),
                     "authors": row_value(book.authors),
                     "date": row_value(getattr(book, "date", None)),
                     "book_id": row_value(book.book_id),

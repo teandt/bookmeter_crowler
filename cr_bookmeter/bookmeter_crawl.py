@@ -347,18 +347,21 @@ def search_books(keywords, target='all'):
         results = []
 
         def get_query_results(model_class, label):
-            # BookDetailと結合してタイトル検索（AND条件）
-            query = session.query(model_class, BookDetail).join(BookDetail, model_class.book_id == BookDetail.book_id)
-            
-            conditions = [BookDetail.title.like(f'%{k}%') for k in keywords]
+            # BookDetailを外部結合し、詳細タイトルが無い本は一覧タイトルで検索する（キーワードはAND条件）
+            query = session.query(model_class, BookDetail).outerjoin(BookDetail, model_class.book_id == BookDetail.book_id)
+
+            conditions = [
+                or_(BookDetail.title.like(f'%{k}%'), model_class.title.like(f'%{k}%'))
+                for k in keywords
+            ]
             query = query.filter(and_(*conditions))
-            
+
             rows = query.all()
             data = []
             for book, detail in rows:
                 data.append({
                     'label': label,
-                    'title': detail.title,
+                    'title': detail.title if detail is not None else book.title,
                     'author': book.authors,
                     'date': getattr(book, 'date', None),
                     'book_id': book.book_id

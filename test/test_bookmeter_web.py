@@ -258,6 +258,27 @@ def test_search_books_filters_by_target_and_all_keywords(db_session_factory, add
     }
 
 
+def test_search_books_finds_book_without_detail_by_list_title(db_session_factory, add_books):
+    add_web_test_data(db_session_factory, add_books)
+
+    result = bookmeter_web.search_books(["Missing"], "all")
+
+    assert result["count"] == 1
+    assert result["items"][0]["book_id"] == "read-missing-detail"
+    assert result["items"][0]["title"] == "Missing detail"
+    assert result["items"][0]["label"] == "読"
+
+
+def test_search_books_matches_list_title_and_prefers_detail_title_for_display(db_session_factory, add_books):
+    add_web_test_data(db_session_factory, add_books)
+
+    result = bookmeter_web.search_books(["Read", "list"], "read")
+
+    assert result["count"] == 1
+    assert result["items"][0]["book_id"] == "read-linked"
+    assert result["items"][0]["title"] == "Series IX"
+
+
 @pytest.mark.parametrize(
     ("keywords", "target", "message"),
     [([], "all", "キーワード"), (["Series"], "detail", "target")],
