@@ -354,3 +354,51 @@ def test_search_books_prints_message_when_no_results(db_session_factory, capsys,
     bookmeter_crawl.search_books(["NoSuchKeyword"], target="all")
 
     assert capsys.readouterr().out == "該当する書籍は見つかりませんでした。\n"
+
+
+def test_search_books_falls_back_to_list_title_when_detail_is_missing(db_session_factory, capsys, add_books):
+    session = db_session_factory()
+    add_books(
+        session,
+        [
+            (
+                bookmeter_crawl.ReadBooks,
+                {
+                    "book_id": "read-no-detail",
+                    "title": "Detail Less Read",
+                    "authors": "Author A",
+                    "date": "2026/01/05",
+                    "url": "https://bookmeter.com/books/read-no-detail",
+                },
+            ),
+            (
+                bookmeter_crawl.StackedBooks,
+                {
+                    "book_id": "stacked-no-detail",
+                    "title": "Detail Less Stacked",
+                    "authors": "Author B",
+                    "date": None,
+                    "url": "https://bookmeter.com/books/stacked-no-detail",
+                },
+            ),
+        ],
+    )
+    session.close()
+
+    bookmeter_crawl.search_books(["Detail", "Less"], target="all")
+
+    output = capsys.readouterr().out
+    assert "--- 検索結果：2件 (対象: all) ---" in output
+    assert "[読] Detail Less Read / Author A (2026/01/05) : https://bookmeter.com/books/read-no-detail" in output
+    assert "[積] Detail Less Stacked / Author B : https://bookmeter.com/books/stacked-no-detail" in output
+
+
+def test_search_books_matches_list_title_and_prefers_detail_title_for_display(search_books_data, capsys):
+    bookmeter_crawl.search_books(["List", "title"], target="all")
+
+    output = capsys.readouterr().out
+    assert "--- 検索結果：3件 (対象: all) ---" in output
+    assert "Python Testing Guide" in output
+    assert "Python Testing Practice" in output
+    assert "Python Cookbook" in output
+    assert "List title A" not in output
